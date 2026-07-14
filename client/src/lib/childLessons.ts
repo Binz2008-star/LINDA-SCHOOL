@@ -13,13 +13,21 @@ import { ChildId } from './children';
 
 // ── Types ────────────────────────────────────────────────────────
 
-export type LessonMode = 'picture_card' | 'letter_trace' | 'word_match' | 'quiz' | 'reading' | 'fill_blank';
+export type LessonMode = 'picture_card' | 'letter_trace' | 'word_match' | 'quiz' | 'reading' | 'fill_blank' | 'tap_picture';
 
 export interface PictureCard {
   emoji: string;
   wordAr: string;
   wordEn: string;
   soundHint?: string; // phonetic hint for reading
+}
+
+// For Noah's tap_picture mode — all visual, no reading
+export interface TapRound {
+  promptEmoji: string;   // the big emoji shown at top: "what is this?"
+  promptLabel: string;   // single Arabic word label shown under prompt
+  choices: { emoji: string; label: string; correct: boolean }[];
+  celebrationEmoji: string; // shown on correct tap
 }
 
 export interface Lesson {
@@ -40,6 +48,8 @@ export interface Lesson {
   lessonBody?: string;            // explanatory text shown before quiz
   lessonBodyEn?: string;
   questions?: LessonQuestion[];
+  // tap_picture mode — each round shows a prompt emoji + grid of choices
+  tapRounds?: TapRound[];
 }
 
 export interface LessonQuestion {
@@ -54,164 +64,308 @@ export interface LessonQuestion {
   emoji?: string;
 }
 
-// ── Noah (7) — Early Learner ─────────────────────────────────────
+// ── Noah (7) — Early Learner — ALL VISUAL, NO READING ────────────
+// tap_picture mode: big emoji prompt → tap the matching picture
 const noahLessons: Lesson[] = [
   {
-    id: 'noah-letters-ar',
+    id: 'noah-vehicles',
     childId: 'noah',
-    subject: 'القراءة والكتابة',
-    title: 'الحروف الأبجدية',
-    titleEn: 'Arabic Alphabet',
-    emoji: '🔤',
-    mode: 'letter_trace',
+    subject: 'المركبات',
+    title: '🚗 السيارات',
+    titleEn: 'Vehicles',
+    emoji: '�',
+    mode: 'tap_picture',
     ageGroup: 'early',
-    letters: ['أ', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر'],
-    lessonBody: 'هيا يا نوح نتعلم الحروف! كل حرف له شكل خاص وصوت مميز 🎵',
-    lessonBodyEn: 'Let\'s learn the letters together Noah!',
-    questions: [
+    tapRounds: [
       {
-        id: 'noah-l-1',
-        question: 'أيُّ حرفٍ هذا؟ → أ',
-        questionEn: 'Which letter is this? → أ',
-        options: ['أ', 'ب', 'ج', 'د'],
-        correctAnswer: 0,
-        explanation: '🌟 هذا هو الحرف "أ" — هو أوّل حرف في الأبجدية! مثل "أسد" 🦁',
-        emoji: '🅰️',
+        promptEmoji: '🚒',
+        promptLabel: 'سيارة إطفاء',
+        celebrationEmoji: '🔥🚒🎉',
+        choices: [
+          { emoji: '🚒', label: 'إطفاء', correct: true },
+          { emoji: '🚗', label: 'سيارة', correct: false },
+          { emoji: '🚌', label: 'باص', correct: false },
+          { emoji: '🚑', label: 'إسعاف', correct: false },
+        ],
       },
       {
-        id: 'noah-l-2',
-        question: 'أيُّ حرفٍ يبدأ بصوت "ب"؟',
-        options: ['أ', 'ب', 'ت', 'ج'],
-        correctAnswer: 1,
-        explanation: '🎉 الحرف "ب" — مثل كلمة "بيت" 🏠 و"بطّة" 🦆!',
-        emoji: '🏠',
+        promptEmoji: '🚑',
+        promptLabel: 'إسعاف',
+        celebrationEmoji: '🚑💙✨',
+        choices: [
+          { emoji: '🚛', label: 'شاحنة', correct: false },
+          { emoji: '🏎️', label: 'سباق', correct: false },
+          { emoji: '🚑', label: 'إسعاف', correct: true },
+          { emoji: '🚌', label: 'باص', correct: false },
+        ],
       },
       {
-        id: 'noah-l-3',
-        question: 'ما هو الحرف الذي يبدأ به اسمك "نوح"؟',
-        options: ['م', 'ن', 'ه', 'و'],
-        correctAnswer: 1,
-        explanation: '😄 اسمك "نوح" يبدأ بحرف "ن" — مثل "نجمة" ⭐ و"نهر" 🌊!',
-        emoji: '⭐',
+        promptEmoji: '🏎️',
+        promptLabel: 'سيارة سباق',
+        celebrationEmoji: '🏁🏎️💨',
+        choices: [
+          { emoji: '🚗', label: 'سيارة', correct: false },
+          { emoji: '�️', label: 'سباق', correct: true },
+          { emoji: '🚒', label: 'إطفاء', correct: false },
+          { emoji: '🚛', label: 'شاحنة', correct: false },
+        ],
+      },
+      {
+        promptEmoji: '🚌',
+        promptLabel: 'باص',
+        celebrationEmoji: '🚌🎊🌟',
+        choices: [
+          { emoji: '🚑', label: 'إسعاف', correct: false },
+          { emoji: '🚌', label: 'باص', correct: true },
+          { emoji: '�️', label: 'سباق', correct: false },
+          { emoji: '🚗', label: 'سيارة', correct: false },
+        ],
+      },
+      {
+        promptEmoji: '🚛',
+        promptLabel: 'شاحنة',
+        celebrationEmoji: '🚛💪🎉',
+        choices: [
+          { emoji: '🚛', label: 'شاحنة', correct: true },
+          { emoji: '🚌', label: 'باص', correct: false },
+          { emoji: '�', label: 'إطفاء', correct: false },
+          { emoji: '🚑', label: 'إسعاف', correct: false },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'noah-animals',
+    childId: 'noah',
+    subject: 'الحيوانات',
+    title: '🦁 الحيوانات',
+    titleEn: 'Animals',
+    emoji: '🦁',
+    mode: 'tap_picture',
+    ageGroup: 'early',
+    tapRounds: [
+      {
+        promptEmoji: '🦁',
+        promptLabel: 'أسد',
+        celebrationEmoji: '🦁👑🎉',
+        choices: [
+          { emoji: '�', label: 'فيل', correct: false },
+          { emoji: '🦁', label: 'أسد', correct: true },
+          { emoji: '�', label: 'نمر', correct: false },
+          { emoji: '🦒', label: 'زرافة', correct: false },
+        ],
+      },
+      {
+        promptEmoji: '🐘',
+        promptLabel: 'فيل',
+        celebrationEmoji: '🐘💛✨',
+        choices: [
+          { emoji: '🦏', label: 'وحيد القرن', correct: false },
+          { emoji: '�', label: 'تمساح', correct: false },
+          { emoji: '🐘', label: 'فيل', correct: true },
+          { emoji: '🦛', label: 'فرس النهر', correct: false },
+        ],
+      },
+      {
+        promptEmoji: '🦒',
+        promptLabel: 'زرافة',
+        celebrationEmoji: '🦒🌟🎊',
+        choices: [
+          { emoji: '🦒', label: 'زرافة', correct: true },
+          { emoji: '🦓', label: 'حمار وحشي', correct: false },
+          { emoji: '🐘', label: 'فيل', correct: false },
+          { emoji: '🦁', label: 'أسد', correct: false },
+        ],
+      },
+      {
+        promptEmoji: '🐬',
+        promptLabel: 'دولفين',
+        celebrationEmoji: '🐬💙🌊',
+        choices: [
+          { emoji: '🐋', label: 'حوت', correct: false },
+          { emoji: '🦈', label: 'قرش', correct: false },
+          { emoji: '🐠', label: 'سمكة', correct: false },
+          { emoji: '�', label: 'دولفين', correct: true },
+        ],
+      },
+      {
+        promptEmoji: '🦋',
+        promptLabel: 'فراشة',
+        celebrationEmoji: '🦋🌈🎉',
+        choices: [
+          { emoji: '🐝', label: 'نحلة', correct: false },
+          { emoji: '🦋', label: 'فراشة', correct: true },
+          { emoji: '�', label: 'دودة', correct: false },
+          { emoji: '🐞', label: 'دعسوقة', correct: false },
+        ],
       },
     ],
   },
   {
     id: 'noah-numbers',
     childId: 'noah',
-    subject: 'الرياضيات',
-    title: 'الأرقام 1 إلى 10',
-    titleEn: 'Numbers 1 to 10',
-    emoji: '🔢',
-    mode: 'picture_card',
+    subject: 'الأرقام',
+    title: '🔢 الأرقام',
+    titleEn: 'Numbers',
+    emoji: '�',
+    mode: 'tap_picture',
     ageGroup: 'early',
-    pictureCards: [
-      { emoji: '🚗', wordAr: 'سيارة واحدة', wordEn: 'One car', soundHint: '١' },
-      { emoji: '🚗🚗', wordAr: 'سيارتان', wordEn: 'Two cars', soundHint: '٢' },
-      { emoji: '🚗🚗🚗', wordAr: 'ثلاث سيارات', wordEn: 'Three cars', soundHint: '٣' },
-      { emoji: '🏎️🏎️🏎️🏎️', wordAr: 'أربع سيارات', wordEn: 'Four cars', soundHint: '٤' },
-      { emoji: '🚕🚕🚕🚕🚕', wordAr: 'خمس سيارات', wordEn: 'Five cars', soundHint: '٥' },
-    ],
-    lessonBody: 'هيا يا نوح نعدّ السيارات! 🚗🚗🚗',
-    questions: [
+    tapRounds: [
       {
-        id: 'noah-n-1',
-        question: 'كم سيارة تشاهد؟ 🚗🚗🚗',
-        options: ['٢', '٣', '٤', '٥'],
-        correctAnswer: 1,
-        explanation: '🎊 صحيح! ثلاث سيارات — نعدّ معاً: واحدة، اثنتان، ثلاثة! 🚗🚗🚗',
-        emoji: '🚗',
+        promptEmoji: '🚗🚗🚗',
+        promptLabel: '٣',
+        celebrationEmoji: '3️⃣🎉✨',
+        choices: [
+          { emoji: '1️⃣', label: '١', correct: false },
+          { emoji: '2️⃣', label: '٢', correct: false },
+          { emoji: '3️⃣', label: '٣', correct: true },
+          { emoji: '4️⃣', label: '٤', correct: false },
+        ],
       },
       {
-        id: 'noah-n-2',
-        question: 'ما هو الرقم الذي يأتي بعد ٤؟',
-        options: ['٣', '٦', '٥', '٢'],
-        correctAnswer: 2,
-        explanation: '⭐ بعد أربعة يأتي خمسة! نعدّ: ١ ٢ ٣ ٤ ٥',
-        emoji: '🖐️',
+        promptEmoji: '⭐⭐',
+        promptLabel: '٢',
+        celebrationEmoji: '2️⃣⭐🌟',
+        choices: [
+          { emoji: '2️⃣', label: '٢', correct: true },
+          { emoji: '5️⃣', label: '٥', correct: false },
+          { emoji: '1️⃣', label: '١', correct: false },
+          { emoji: '4️⃣', label: '٤', correct: false },
+        ],
       },
       {
-        id: 'noah-n-3',
-        question: 'عندك ٣ سيارات وأعطاك بابا ٢ — كم صارت معك؟',
-        options: ['٤', '٦', '٥', '٣'],
-        correctAnswer: 2,
-        explanation: '🚀 ٣ + ٢ = ٥ سيارات! بابا فخور فيك يا نوح!',
-        emoji: '🏆',
+        promptEmoji: '🍎🍎🍎🍎🍎',
+        promptLabel: '٥',
+        celebrationEmoji: '5️⃣🍎🎊',
+        choices: [
+          { emoji: '3️⃣', label: '٣', correct: false },
+          { emoji: '4️⃣', label: '٤', correct: false },
+          { emoji: '6️⃣', label: '٦', correct: false },
+          { emoji: '5️⃣', label: '٥', correct: true },
+        ],
+      },
+      {
+        promptEmoji: '🏀🏀🏀🏀',
+        promptLabel: '٤',
+        celebrationEmoji: '4️⃣🏀🎉',
+        choices: [
+          { emoji: '4️⃣', label: '٤', correct: true },
+          { emoji: '2️⃣', label: '٢', correct: false },
+          { emoji: '7️⃣', label: '٧', correct: false },
+          { emoji: '3️⃣', label: '٣', correct: false },
+        ],
       },
     ],
   },
   {
-    id: 'noah-cars',
+    id: 'noah-fruits',
     childId: 'noah',
-    subject: 'السيارات والمركبات',
-    title: 'أنواع السيارات',
-    titleEn: 'Types of Vehicles',
-    emoji: '🚙',
-    mode: 'picture_card',
+    subject: 'الفواكه',
+    title: '🍎 الفواكه',
+    titleEn: 'Fruits',
+    emoji: '🍎',
+    mode: 'tap_picture',
     ageGroup: 'early',
-    pictureCards: [
-      { emoji: '🚗', wordAr: 'سيارة', wordEn: 'Car' },
-      { emoji: '🚌', wordAr: 'باص', wordEn: 'Bus' },
-      { emoji: '🚒', wordAr: 'سيارة إطفاء', wordEn: 'Fire truck' },
-      { emoji: '🚑', wordAr: 'إسعاف', wordEn: 'Ambulance' },
-      { emoji: '🚛', wordAr: 'شاحنة', wordEn: 'Truck' },
-      { emoji: '🏎️', wordAr: 'سيارة سباق', wordEn: 'Race car' },
-    ],
-    lessonBody: 'يا نوح حبيب بابا! هيا نتعلم أسماء السيارات المختلفة 🚗🚌🚒',
-    questions: [
+    tapRounds: [
       {
-        id: 'noah-c-1',
-        question: 'أيُّ مركبة تُستخدم لإطفاء الحرائق؟ 🔥',
-        options: ['🚗 سيارة', '🚒 سيارة إطفاء', '🚌 باص', '🚑 إسعاف'],
-        correctAnswer: 1,
-        explanation: '🚒 سيارة الإطفاء حمراء اللون وتحمل خرطوم الماء! هي تُطفئ النار وتحمي الناس.',
-        emoji: '🚒',
+        promptEmoji: '🍌',
+        promptLabel: 'موزة',
+        celebrationEmoji: '🍌💛🎉',
+        choices: [
+          { emoji: '🍎', label: 'تفاحة', correct: false },
+          { emoji: '�', label: 'برتقالة', correct: false },
+          { emoji: '🍌', label: 'موزة', correct: true },
+          { emoji: '🍇', label: 'عنب', correct: false },
+        ],
       },
       {
-        id: 'noah-c-2',
-        question: 'ما اسم السيارة التي تنقل المرضى إلى المستشفى؟',
-        options: ['🚛 شاحنة', '🏎️ سيارة سباق', '🚑 إسعاف', '🚌 باص'],
-        correctAnswer: 2,
-        explanation: '🚑 الإسعاف يساعد المرضى ويوصلهم للمستشفى بسرعة — له صوت خاص "يو يو يو"!',
-        emoji: '🚑',
+        promptEmoji: '🍓',
+        promptLabel: 'فراولة',
+        celebrationEmoji: '🍓❤️✨',
+        choices: [
+          { emoji: '🍓', label: 'فراولة', correct: true },
+          { emoji: '🍒', label: 'كرز', correct: false },
+          { emoji: '🍎', label: 'تفاحة', correct: false },
+          { emoji: '🍑', label: 'خوخ', correct: false },
+        ],
       },
       {
-        id: 'noah-c-3',
-        question: 'السيارة الأسرع في السباقات هي؟',
-        options: ['🚌 الباص', '🚛 الشاحنة', '🏎️ سيارة السباق', '🚒 الإطفاء'],
-        correctAnswer: 2,
-        explanation: '🏎️ سيارة السباق هي الأسرع! محركها قوي جداً ويمكنها الوصول لسرعات هائلة!',
-        emoji: '🏁',
+        promptEmoji: '🍉',
+        promptLabel: 'بطيخ',
+        celebrationEmoji: '🍉💚🎊',
+        choices: [
+          { emoji: '🥝', label: 'كيوي', correct: false },
+          { emoji: '🍉', label: 'بطيخ', correct: true },
+          { emoji: '�', label: 'ليمون', correct: false },
+          { emoji: '🍇', label: 'عنب', correct: false },
+        ],
+      },
+      {
+        promptEmoji: '🍇',
+        promptLabel: 'عنب',
+        celebrationEmoji: '�💜🌟',
+        choices: [
+          { emoji: '🍊', label: 'برتقالة', correct: false },
+          { emoji: '�', label: 'موزة', correct: false },
+          { emoji: '🍇', label: 'عنب', correct: true },
+          { emoji: '🍓', label: 'فراولة', correct: false },
+        ],
       },
     ],
   },
   {
-    id: 'noah-words',
+    id: 'noah-colors',
     childId: 'noah',
-    subject: 'القراءة',
-    title: 'كلمات بسيطة',
-    titleEn: 'Simple Words',
-    emoji: '📖',
-    mode: 'word_match',
+    subject: 'الألوان',
+    title: '🎨 الألوان',
+    titleEn: 'Colors',
+    emoji: '🎨',
+    mode: 'tap_picture',
     ageGroup: 'early',
-    words: ['بيت', 'باب', 'نور', 'كتاب', 'قلم', 'ماء'],
-    lessonBody: 'هيا نقرأ كلمات بسيطة يا نوح! كل كلمة لها معنى جميل 📖',
-    questions: [
+    tapRounds: [
       {
-        id: 'noah-w-1',
-        question: 'أيُّ صورة تناسب كلمة "بيت"؟',
-        options: ['🏠', '📚', '✏️', '💧'],
-        correctAnswer: 0,
-        explanation: '🏠 البيت هو المكان الذي تعيش فيه مع عائلتك الحلوة!',
-        emoji: '🏠',
+        promptEmoji: '❤️',
+        promptLabel: 'أحمر',
+        celebrationEmoji: '❤️🎉🌹',
+        choices: [
+          { emoji: '❤️', label: 'أحمر', correct: true },
+          { emoji: '💙', label: 'أزرق', correct: false },
+          { emoji: '�', label: 'أصفر', correct: false },
+          { emoji: '💚', label: 'أخضر', correct: false },
+        ],
       },
       {
-        id: 'noah-w-2',
-        question: 'كيف نكتب الرقم ٣ بالحروف؟',
-        options: ['اثنان', 'أربعة', 'ثلاثة', 'خمسة'],
-        correctAnswer: 2,
-        explanation: '🌟 الرقم ٣ يُكتب "ثلاثة" — تبدأ بحرف الثاء!',
-        emoji: '3️⃣',
+        promptEmoji: '💙',
+        promptLabel: 'أزرق',
+        celebrationEmoji: '💙🌊✨',
+        choices: [
+          { emoji: '�', label: 'بنفسجي', correct: false },
+          { emoji: '💙', label: 'أزرق', correct: true },
+          { emoji: '🖤', label: 'أسود', correct: false },
+          { emoji: '🤍', label: 'أبيض', correct: false },
+        ],
+      },
+      {
+        promptEmoji: '💛',
+        promptLabel: 'أصفر',
+        celebrationEmoji: '💛☀️🎊',
+        choices: [
+          { emoji: '🧡', label: 'برتقالي', correct: false },
+          { emoji: '💚', label: 'أخضر', correct: false },
+          { emoji: '💛', label: 'أصفر', correct: true },
+          { emoji: '❤️', label: 'أحمر', correct: false },
+        ],
+      },
+      {
+        promptEmoji: '💚',
+        promptLabel: 'أخضر',
+        celebrationEmoji: '💚🌿🌟',
+        choices: [
+          { emoji: '💚', label: 'أخضر', correct: true },
+          { emoji: '💙', label: 'أزرق', correct: false },
+          { emoji: '💛', label: 'أصفر', correct: false },
+          { emoji: '🤎', label: 'بني', correct: false },
+        ],
       },
     ],
   },
@@ -614,9 +768,9 @@ const lindaLessons: Lesson[] = [
 
 // ── Master map ───────────────────────────────────────────────────
 export const CHILD_LESSONS: Record<ChildId, Lesson[]> = {
-  noah:  noahLessons,
-  judy:  judyLessons,
-  adam:  adamLessons,
+  noah: noahLessons,
+  judy: judyLessons,
+  adam: adamLessons,
   linda: lindaLessons,
 };
 

@@ -252,7 +252,7 @@ function makeCoreLessons(learner: LearnerProfile): SchoolLesson[] {
         'ابدأ بالكلمات المستخدمة يومياً، وكررها في جملة قصيرة. الاستماع والنطق مهمان مثل الكتابة.',
       ],
       example: interestExample(learner, 'english'),
-      activity: `قل بصوت مسموع: car, book, water, home. ثم ${writeWord} كل كلمة مرة واحدة.`,
+      activity: `قل بصوت مسموع: car, book, water, home. ثم ${writeWord} كل كلمة مرة واحدة باللغة الإنجليزية فقط — لا تكتب الترجمة العربية هنا. مثال: c-a-r`,
       remember: 'Listen, say, read, then write.',
       visuals: learner.id === 'noah' ? [
         { emoji: '🚗', label: 'C — car' },
@@ -273,6 +273,18 @@ function makeCoreLessons(learner: LearnerProfile): SchoolLesson[] {
           correctAnswer: 0,
           explanation: 'I = أنا، like = أحب، sports = الرياضة.',
         },
+        {
+          question: 'What sound does the letter B make?',
+          options: ['"p" sound', '"b" sound like in book', '"d" sound', '"m" sound'],
+          correctAnswer: 1,
+          explanation: 'B makes the "b" sound — like in book, ball, bus.',
+        },
+        {
+          question: 'Which word starts with the letter W?',
+          options: ['home', 'road', 'water', 'book'],
+          correctAnswer: 2,
+          explanation: 'water starts with W. W sounds like the beginning of "wow".',
+        },
       ],
     },
     {
@@ -287,7 +299,7 @@ function makeCoreLessons(learner: LearnerProfile): SchoolLesson[] {
         'نستخدم جُملاً قصيرة في البداية، ثم نغير كلمة واحدة لصنع جمل كثيرة.',
       ],
       example: `My name is ${learner.nameEn}. I am ${learner.age}. I like ${learner.interestEn.toLowerCase()}.`,
-      activity: `قل ثلاث جمل: My name is ___. I am ___. I like ___. ثم ${writeWord} الجمل.`,
+      activity: `قل ثلاث جمل بصوت مسموع: My name is ___. I am ___. I like ___. ثم ${writeWord} الجمل بالإنجليزية فقط — الكتابة تكون بالحروف الإنجليزية حصراً.`,
       remember: 'ابدأ بجملة صحيحة قصيرة، ثم أضف كلمة جديدة.',
       questions: [
         {
@@ -301,6 +313,18 @@ function makeCoreLessons(learner: LearnerProfile): SchoolLesson[] {
           options: ['sports I like', 'I sports like', 'I like sports', 'like sports I'],
           correctAnswer: 2,
           explanation: 'الترتيب الصحيح: I + like + sports.',
+        },
+        {
+          question: 'Which sentence introduces yourself correctly?',
+          options: ['Name I am.', 'My name is Judy.', 'Is Judy name my.', 'Judy name.'],
+          correctAnswer: 1,
+          explanation: 'My name is ___ هي الطريقة الصحيحة للتعريف بالنفس.',
+        },
+        {
+          question: 'What does "I am 9" mean?',
+          options: ['اسمي 9', 'عمري 9 سنوات', 'لدي 9 أشياء', 'أنا رقم 9'],
+          correctAnswer: 1,
+          explanation: 'I am + رقم تعني العمر. مثال: I am 9 = عمري 9 سنوات.',
         },
       ],
     },
@@ -524,6 +548,88 @@ function makeInterestLessons(learner: LearnerProfile): SchoolLesson[] {
 
   if (learner.id === 'judy') {
     return [
+      {
+        id: 'interest-judy-english-sports',
+        subject: 'interest',
+        title: 'Sports English — talk about your game',
+        subtitle: 'تعلمي الكلمات والجمل الإنجليزية للرياضة.',
+        emoji: '🏅',
+        objectives: ['قول اسم الرياضة بالإنجليزية', 'وصف الحركة بجملة', 'استخدام can/cannot', 'فهم أوامر الملعب'],
+        explanation: [
+          'Sports have special words in English. Learning them helps you describe what you do.',
+          'نستخدم can لوصف ما نستطيع فعله: I can run fast. I can kick the ball.',
+        ],
+        example: 'Judy says: "I play football. I can run fast. My team scored 3 goals."',
+        activity: 'قولي جملتين بالإنجليزية عن رياضتك المفضلة واكتبيهما بالإنجليزية فقط. مثال: I like football. I can jump high.',
+        remember: 'I can + verb — تخبر الناس بما تستطيعين فعله.',
+        questions: [
+          {
+            question: 'How do you say «أستطيع الجري» in English?',
+            options: ['I running.', 'I can run.', 'Run I can.', 'Can running I.'],
+            correctAnswer: 1,
+            explanation: 'I can run. — can + فعل بدون to تعني الاستطاعة.',
+          },
+          {
+            question: 'Which word means «كرة القدم»?',
+            options: ['basketball', 'tennis', 'football', 'swimming'],
+            correctAnswer: 2,
+            explanation: 'football = كرة القدم. Basketball = كرة السلة.',
+          },
+          {
+            question: 'Complete: "My team ___ 3 goals."',
+            options: ['run', 'scored', 'jumped', 'swam'],
+            correctAnswer: 1,
+            explanation: 'scored تعني سجّل. My team scored 3 goals = سجّل فريقي 3 أهداف.',
+          },
+          {
+            question: 'What does the coach say to stop the game?',
+            options: ['Go!', 'Stop!', 'Jump!', 'Score!'],
+            correctAnswer: 1,
+            explanation: 'Stop! = قف/توقفي. أوامر الملعب قصيرة وواضحة.',
+          },
+        ],
+      },
+      {
+        id: 'interest-judy-english-write',
+        subject: 'interest',
+        title: 'Write about your day in English',
+        subtitle: 'كتابة يوميات رياضية قصيرة بالإنجليزية.',
+        emoji: '✏️',
+        objectives: ['كتابة جملة بداية', 'وصف نشاط بالماضي', 'استخدام because', 'كتابة نهاية مناسبة'],
+        explanation: [
+          'A diary entry starts with: Today I + فعل. ثم نضيف because لشرح السبب.',
+          'الكتابة بالإنجليزية تبدأ بجملة واحدة صحيحة — لا نحتاج جملاً كثيرة.',
+        ],
+        example: 'Today I played football. I scored two goals. I was happy because my team won.',
+        activity: 'اكتبي 3 جمل بالإنجليزية عن نشاط رياضي فعلتِه. ابدئي بـ Today I ... الكتابة تكون بالإنجليزية فقط.',
+        remember: 'Today I + verb + because + reason — وصفة جملة كاملة.',
+        questions: [
+          {
+            question: 'How do you start a diary entry?',
+            options: ['Yesterday maybe I', 'Today I played football.', 'Football today playing.', 'I football today.'],
+            correctAnswer: 1,
+            explanation: 'Today I + verb in past tense هي البداية الصحيحة.',
+          },
+          {
+            question: 'Choose the correct past tense sentence:',
+            options: ['I play yesterday.', 'I played yesterday.', 'I plays yesterday.', 'Yesterday play I.'],
+            correctAnswer: 1,
+            explanation: 'الفعل في الماضي يأخذ -ed عادةً: play → played.',
+          },
+          {
+            question: 'Complete: "I was happy ___ my team won."',
+            options: ['and', 'but', 'because', 'or'],
+            correctAnswer: 2,
+            explanation: 'because تربط السبب بالنتيجة. I was happy because = كنت سعيدة لأن.',
+          },
+          {
+            question: 'Which sentence correctly uses "because"?',
+            options: ['I tired because.', 'Because I ran fast.', 'I was tired because I ran fast.', 'I ran because fast.'],
+            correctAnswer: 2,
+            explanation: 'الجملة الكاملة: سبب + because + نتيجة أو نتيجة + because + سبب.',
+          },
+        ],
+      },
       {
         id: 'interest-judy-body',
         subject: 'interest',

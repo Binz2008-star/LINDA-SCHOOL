@@ -9,14 +9,15 @@
  * ─────────────────────────────────────────────────────────────────
  */
 
+import { useSpeech } from '@/hooks/useSpeech';
 import { getLessonsForChild, Lesson, LessonQuestion, TapRound } from '@/lib/childLessons';
 import { ChildProfile } from '@/lib/children';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, BookOpen, CheckCircle2,
-  ChevronRight, Lightbulb, RotateCcw, Star, XCircle
+  ChevronRight, Lightbulb, RotateCcw, Star, Volume2, XCircle
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface Props {
   child: ChildProfile;
@@ -408,114 +409,18 @@ function LessonDetail({
     const isCorrect = selected === q.correctAnswer;
 
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl mx-auto"
-        dir="rtl"
-      >
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* Progress bar */}
-          <div className="h-1.5 bg-gray-100">
-            <motion.div
-              className={`h-full bg-gradient-to-r ${child.color}`}
-              animate={{ width: `${((qIdx + 1) / questions.length) * 100}%` }}
-              transition={{ duration: 0.4 }}
-            />
-          </div>
-
-          <div className="p-6">
-            {/* Counter */}
-            <div className="flex justify-between items-center mb-4">
-              <span className={`text-sm font-semibold ${child.colorText} arabic-text`}>
-                سؤال {qIdx + 1} من {questions.length}
-              </span>
-              <span className="text-lg">{q.emoji || lesson.emoji}</span>
-            </div>
-
-            {/* Question */}
-            <h3 className="text-xl font-bold text-gray-900 arabic-text leading-relaxed mb-5">
-              {q.question}
-            </h3>
-
-            {/* Options */}
-            <div className="space-y-3">
-              {q.options.map((opt, i) => {
-                const isCorrectOpt = i === q.correctAnswer;
-                const isSelected = selected === i;
-                return (
-                  <motion.button
-                    key={i}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.07 }}
-                    onClick={() => handleAnswer(i)}
-                    disabled={answered}
-                    className={`w-full p-4 rounded-xl text-right font-medium text-base
-                      flex items-center gap-3 transition-all
-                      ${answered && isCorrectOpt
-                        ? 'bg-green-50 border-2 border-green-500 text-green-900'
-                        : answered && isSelected && !isCorrectOpt
-                          ? 'bg-red-50 border-2 border-red-500 text-red-900'
-                          : answered
-                            ? 'bg-gray-50 border-2 border-gray-200 text-gray-400 cursor-default'
-                            : 'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50 cursor-pointer'}`}
-                  >
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0
-                      ${answered && isCorrectOpt ? 'bg-green-500 text-white' :
-                        answered && isSelected ? 'bg-red-500 text-white' :
-                          'bg-gray-200 text-gray-600'}`}>
-                      {answered && isCorrectOpt ? <CheckCircle2 className="w-4 h-4" /> :
-                        answered && isSelected ? <XCircle className="w-4 h-4" /> :
-                          ['أ', 'ب', 'ج', 'د'][i]}
-                    </div>
-                    <span className="arabic-text flex-1">{opt}</span>
-                    {answered && isCorrectOpt && (
-                      <span className="text-xs text-green-600 font-bold arabic-text">✓ صحيح</span>
-                    )}
-                  </motion.button>
-                );
-              })}
-            </div>
-
-            {/* Explanation */}
-            <AnimatePresence>
-              {answered && (
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="mt-5 space-y-3"
-                >
-                  <div className={`p-4 rounded-xl arabic-text leading-relaxed text-sm
-                    ${isCorrect ? 'bg-green-50 border border-green-200 text-green-900'
-                      : 'bg-violet-50 border border-violet-200 text-violet-900'}`}>
-                    <div className="flex items-start gap-2">
-                      <span className="text-xl flex-shrink-0 mt-0.5">{isCorrect ? '🎉' : '💡'}</span>
-                      <p>{q.explanation}</p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleNextQ}
-                    className={`w-full py-4 rounded-xl font-bold text-white text-base
-                      flex items-center justify-center gap-2
-                      ${isCorrect
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-green-200'
-                        : 'bg-gradient-to-r from-violet-500 to-purple-600 shadow-violet-200'}
-                      shadow-md active:scale-95 transition-all`}
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                    <span className="arabic-text">
-                      {qIdx < questions.length - 1 ? 'فهمت ✓ التالي' : '🏆 عرض النتيجة'}
-                    </span>
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </motion.div>
+      <QuizPhase
+        q={q}
+        qIdx={qIdx}
+        questions={questions}
+        answered={answered}
+        isCorrect={isCorrect}
+        selected={selected}
+        child={child}
+        lesson={lesson}
+        handleAnswer={handleAnswer}
+        handleNextQ={handleNextQ}
+      />
     );
   }
 
@@ -540,18 +445,15 @@ function LessonDetail({
         <p className="text-gray-500 arabic-text mb-6">
           {score} / {questions.length} إجابة صحيحة
         </p>
-
-        {/* Score ring */}
         <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center
-          bg-gradient-to-br ${child.color} text-white text-3xl font-black shadow-lg mb-6`}>
+            bg-gradient-to-br ${child.color} text-white text-3xl font-black shadow-lg mb-6`}>
           {pct}%
         </div>
-
         <div className="space-y-3">
           <button
             onClick={() => { setPhase('intro'); setQIdx(0); setSelected(null); setScore(0); setCardIdx(0); }}
             className="w-full py-3 rounded-xl font-bold text-gray-700 bg-gray-100
-              hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
           >
             <RotateCcw className="w-4 h-4" />
             <span className="arabic-text">أعد الدرس</span>
@@ -560,8 +462,8 @@ function LessonDetail({
             <button
               onClick={() => { onNext(); setPhase('intro'); setQIdx(0); setSelected(null); setScore(0); setCardIdx(0); }}
               className={`w-full py-3 rounded-xl font-bold text-white
-                bg-gradient-to-r ${child.color} shadow-md active:scale-95 transition-all
-                flex items-center justify-center gap-2`}
+                  bg-gradient-to-r ${child.color} shadow-md active:scale-95 transition-all
+                  flex items-center justify-center gap-2`}
             >
               <span className="arabic-text">الدرس التالي →</span>
             </button>
@@ -569,10 +471,162 @@ function LessonDetail({
           <button
             onClick={onBack}
             className="w-full py-3 rounded-xl font-semibold text-gray-500
-              hover:text-gray-700 transition-colors arabic-text"
+                hover:text-gray-700 transition-colors arabic-text"
           >
             العودة لقائمة الدروس
           </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// QuizPhase — extracted so we can use hooks (useEffect for speech)
+// ─────────────────────────────────────────────────────────────────
+function QuizPhase({
+  q, qIdx, questions, answered, isCorrect, selected,
+  child, lesson, handleAnswer, handleNextQ,
+}: {
+  q: LessonQuestion;
+  qIdx: number;
+  questions: LessonQuestion[];
+  answered: boolean;
+  isCorrect: boolean;
+  selected: number | null;
+  child: ChildProfile;
+  lesson: Lesson;
+  handleAnswer: (i: number) => void;
+  handleNextQ: () => void;
+}) {
+  const { speak, isSupported } = useSpeech();
+
+  // Auto-read question when it changes
+  useEffect(() => {
+    speak(q.question, { lang: 'ar', rate: 0.82 });
+  }, [q.question]);
+
+  const readQuestion = () => speak(q.question, { lang: 'ar', rate: 0.82 });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full max-w-2xl mx-auto"
+      dir="rtl"
+    >
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        {/* Progress bar */}
+        <div className="h-1.5 bg-gray-100">
+          <motion.div
+            className={`h-full bg-gradient-to-r ${child.color}`}
+            animate={{ width: `${((qIdx + 1) / questions.length) * 100}%` }}
+            transition={{ duration: 0.4 }}
+          />
+        </div>
+
+        <div className="p-6">
+          {/* Counter */}
+          <div className="flex justify-between items-center mb-4">
+            <span className={`text-sm font-semibold ${child.colorText} arabic-text`}>
+              سؤال {qIdx + 1} من {questions.length}
+            </span>
+            <span className="text-lg">{q.emoji || lesson.emoji}</span>
+          </div>
+
+          {/* Question + speak button */}
+          <div className="flex items-start gap-3 mb-5">
+            <h3 className="flex-1 text-xl font-bold text-gray-900 arabic-text leading-relaxed">
+              {q.question}
+            </h3>
+            {isSupported && (
+              <button
+                onClick={readQuestion}
+                title="اقرأ السؤال"
+                className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center
+                    bg-gradient-to-br ${child.color} text-white shadow-md
+                    active:scale-90 transition-all hover:opacity-90`}
+              >
+                <Volume2 className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+
+          {/* Options */}
+          <div className="space-y-3">
+            {q.options.map((opt, i) => {
+              const isCorrectOpt = i === q.correctAnswer;
+              const isSelected = selected === i;
+              return (
+                <motion.button
+                  key={i}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.07 }}
+                  onClick={() => handleAnswer(i)}
+                  disabled={answered}
+                  className={`w-full p-4 rounded-xl text-right font-medium text-base
+                      flex items-center gap-3 transition-all
+                      ${answered && isCorrectOpt
+                      ? 'bg-green-50 border-2 border-green-500 text-green-900'
+                      : answered && isSelected && !isCorrectOpt
+                        ? 'bg-red-50 border-2 border-red-500 text-red-900'
+                        : answered
+                          ? 'bg-gray-50 border-2 border-gray-200 text-gray-400 cursor-default'
+                          : 'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50 cursor-pointer'}`}
+                >
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0
+                      ${answered && isCorrectOpt ? 'bg-green-500 text-white' :
+                      answered && isSelected ? 'bg-red-500 text-white' :
+                        'bg-gray-200 text-gray-600'}`}>
+                    {answered && isCorrectOpt ? <CheckCircle2 className="w-4 h-4" /> :
+                      answered && isSelected ? <XCircle className="w-4 h-4" /> :
+                        ['أ', 'ب', 'ج', 'د'][i]}
+                  </div>
+                  <span className="arabic-text flex-1">{opt}</span>
+                  {answered && isCorrectOpt && (
+                    <span className="text-xs text-green-600 font-bold arabic-text">✓ صحيح</span>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Explanation */}
+          <AnimatePresence>
+            {answered && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mt-5 space-y-3"
+              >
+                <div className={`p-4 rounded-xl arabic-text leading-relaxed text-sm
+                    ${isCorrect ? 'bg-green-50 border border-green-200 text-green-900'
+                    : 'bg-violet-50 border border-violet-200 text-violet-900'}`}>
+                  <div className="flex items-start gap-2">
+                    <span className="text-xl flex-shrink-0 mt-0.5">{isCorrect ? '🎉' : '💡'}</span>
+                    <p>{q.explanation}</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleNextQ}
+                  className={`w-full py-4 rounded-xl font-bold text-white text-base
+                      flex items-center justify-center gap-2
+                      ${isCorrect
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-green-200'
+                      : 'bg-gradient-to-r from-violet-500 to-purple-600 shadow-violet-200'}
+                      shadow-md active:scale-95 transition-all`}
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                  <span className="arabic-text">
+                    {qIdx < questions.length - 1 ? 'فهمت ✓ التالي' : '🏆 عرض النتيجة'}
+                  </span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </motion.div>
@@ -596,8 +650,14 @@ function TapPictureGame({
   const [tapped, setTapped] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const { speak, isSupported } = useSpeech();
 
   const round = rounds[roundIdx];
+
+  // Auto-read the prompt label on every new round
+  useEffect(() => {
+    speak(`أين هو ${round.promptLabel}؟`, { lang: 'ar', rate: 0.78 });
+  }, [roundIdx]);
   const isCorrectTap = tapped !== null && round.choices[tapped]?.correct;
 
   const handleTap = (i: number) => {
@@ -657,8 +717,18 @@ function TapPictureGame({
       <div className={`bg-gradient-to-br ${child.color} rounded-3xl p-6 text-center mb-5 shadow-xl`}>
         <p className="text-white/80 text-base font-semibold arabic-text mb-2">أيّ واحد هو؟</p>
         <div className="text-9xl leading-none mb-3">{round.promptEmoji}</div>
-        <div className="bg-white/25 rounded-2xl py-2 px-6 inline-block">
-          <span className="text-white text-2xl font-black arabic-text">{round.promptLabel}</span>
+        <div className="flex items-center justify-center gap-3">
+          <div className="bg-white/25 rounded-2xl py-2 px-6">
+            <span className="text-white text-2xl font-black arabic-text">{round.promptLabel}</span>
+          </div>
+          {isSupported && (
+            <button
+              onClick={() => speak(`أين هو ${round.promptLabel}؟`, { lang: 'ar', rate: 0.78 })}
+              className="w-12 h-12 rounded-2xl bg-white/30 hover:bg-white/50 flex items-center justify-center active:scale-90 transition-all"
+            >
+              <Volume2 className="w-6 h-6 text-white" />
+            </button>
+          )}
         </div>
       </div>
 

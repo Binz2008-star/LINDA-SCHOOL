@@ -683,6 +683,74 @@ function RewardsView({
   );
 }
 
+function QuickQuiz({ learner, curriculum, progress, onBack }: { learner: LearnerProfile; curriculum: SchoolLesson[]; progress: ProgressState; onBack: () => void }) {
+  const completedIds = Object.keys(progress.completed);
+  const pool = curriculum.filter(l => completedIds.includes(l.id)).flatMap(l => l.questions.map(q => ({ ...q, lessonTitle: l.title })));
+  const [questions] = useState(() => pool.sort(() => Math.random() - 0.5).slice(0, 5));
+  const [index, setIndex] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [score, setScore] = useState(0);
+  const [done, setDone] = useState(false);
+
+  if (pool.length < 3) return (
+    <div className="max-w-md mx-auto text-center py-20" dir="rtl">
+      <p className="text-5xl mb-4">📚</p>
+      <h2 className="text-xl font-black text-gray-900 arabic-text">أكمل 3 دروس أولاً</h2>
+      <p className="text-gray-500 mt-2 arabic-text">الاختبار السريع يأخذ أسئلة من الدروس التي أكملتها.</p>
+      <button onClick={onBack} className="mt-6 px-5 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-bold arabic-text">العودة</button>
+    </div>
+  );
+
+  if (done) {
+    const pct = Math.round((score / questions.length) * 100);
+    return (
+      <div className="max-w-md mx-auto text-center py-12" dir="rtl">
+        <p className="text-6xl mb-4">{pct >= 80 ? '🏆' : pct >= 50 ? '🌱' : '📖'}</p>
+        <h2 className="text-2xl font-black text-gray-900 arabic-text">{score} من {questions.length} صحيحة</h2>
+        <div className={`w-24 h-24 rounded-full bg-gradient-to-br ${learner.theme.gradient} text-white flex items-center justify-center text-2xl font-black mx-auto my-5`}>{pct}%</div>
+        <button onClick={onBack} className={`px-6 py-3 rounded-xl bg-gradient-to-r ${learner.theme.gradient} text-white font-black arabic-text`}>العودة للمدرسة</button>
+      </div>
+    );
+  }
+
+  const q = questions[index];
+  return (
+    <div className="max-w-2xl mx-auto" dir="rtl">
+      <button onClick={onBack} className="mb-5 flex items-center gap-2 text-gray-600 arabic-text"><ArrowRight className="w-5 h-5" /> إلغاء الاختبار</button>
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-6 md:p-8">
+        <div className="flex items-center justify-between mb-5">
+          <span className={`text-sm font-bold ${learner.theme.text} arabic-text`}>سؤال {index + 1} من {questions.length}</span>
+          <span className="text-xs text-gray-400 arabic-text">من درس: {q.lessonTitle}</span>
+        </div>
+        <h2 className="text-xl font-black text-gray-900 arabic-text leading-relaxed mb-6">{q.question}</h2>
+        <div className="space-y-3">
+          {q.options.map((opt, i) => {
+            const answered = selected !== null;
+            const correct = answered && i === q.correctAnswer;
+            const wrong = answered && i === selected && !correct;
+            return (
+              <button key={i} disabled={answered} onClick={() => { setSelected(i); if (i === q.correctAnswer) setScore(s => s + 1); }}
+                className={`w-full min-h-[52px] rounded-xl border-2 p-4 text-right flex gap-3 arabic-text ${correct ? 'bg-green-50 border-green-500' : wrong ? 'bg-red-50 border-red-400' : answered ? 'bg-gray-50 border-gray-200 text-gray-400' : 'bg-gray-50 border-gray-200 hover:border-blue-300'}`}>
+                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black ${correct ? 'bg-green-500 text-white' : wrong ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600'}`}>{['أ', 'ب', 'ج', 'د'][i]}</span>
+                <span className="flex-1">{opt}</span>
+              </button>
+            );
+          })}
+        </div>
+        {selected !== null && (
+          <div className="mt-5">
+            <p className="text-sm text-gray-600 arabic-text bg-gray-50 rounded-xl p-3 mb-4">{q.explanation}</p>
+            <button onClick={() => { if (index < questions.length - 1) { setIndex(i => i + 1); setSelected(null); } else setDone(true); }}
+              className={`w-full min-h-[48px] rounded-xl bg-gradient-to-r ${learner.theme.gradient} text-white font-black arabic-text`}>
+              {index < questions.length - 1 ? 'السؤال التالي' : 'انهِ الاختبار'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function SecureFamilySchool() {
   const [config, setConfig] = useState<SecurityConfig | null>(() => loadSecurity());
   const [activeLearnerId, setActiveLearnerId] = useState<LearnerId | null>(null);
@@ -692,6 +760,7 @@ export default function SecureFamilySchool() {
   const [showRewards, setShowRewards] = useState(false);
   const [showTool, setShowTool] = useState(false);
   const [showNoahGames, setShowNoahGames] = useState(false);
+  const [showQuickQuiz, setShowQuickQuiz] = useState(false);
   const [progress, setProgress] = useState<ProgressState>(EMPTY_PROGRESS);
   const [requests, setRequests] = useState<RewardRequest[]>(() => loadRequests());
 
@@ -720,6 +789,7 @@ export default function SecureFamilySchool() {
     setShowRewards(false);
     setShowTool(false);
     setShowNoahGames(false);
+    setShowQuickQuiz(false);
   };
 
   if (!config) return <SetupScreen onComplete={setConfig} />;
@@ -756,6 +826,7 @@ export default function SecureFamilySchool() {
   };
 
   if (activeLesson) return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 px-4 py-7"><LessonView learner={learner} lesson={activeLesson} previous={progress.completed[activeLesson.id]} onComplete={(correct, total) => completeLesson(activeLesson.id, correct, total)} onBack={() => setActiveLessonId(null)} /></div>;
+  if (showQuickQuiz) return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 px-4 py-7"><QuickQuiz learner={learner} curriculum={curriculum} progress={progress} onBack={() => setShowQuickQuiz(false)} /></div>;
   if (showNoahGames && learner.id === 'noah') return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4 py-7">
       <NoahGames learner={learner} onBack={() => setShowNoahGames(false)} onXP={(amount) => {
@@ -774,7 +845,8 @@ export default function SecureFamilySchool() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50" dir="rtl">
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-gray-200"><div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between"><div className="flex items-center gap-3"><ChildAvatar learner={learner} size="small" /><div><h1 className={`font-black ${learner.theme.text} arabic-text`}>مدرسة {learner.nameAr}</h1><p className="text-xs text-gray-500 arabic-text">المستوى {stats.level} • {stats.xp} XP • 🪙 {availableCoins}{(progress.streak ?? 0) > 1 ? ` • 🔥 ${progress.streak} يوم` : ''}</p></div></div><div className="flex items-center gap-1"><button onClick={() => setShowTool(true)} className={`p-2.5 rounded-xl hover:bg-opacity-80 ${learner.theme.text}`} title="الأداة التفاعلية"><Sparkles className="w-5 h-5" /></button>{learner.id === 'noah' && <button onClick={() => setShowNoahGames(true)} className="p-2.5 rounded-xl hover:bg-orange-50 text-orange-600" title="ألعاب نوح"><Gamepad2 className="w-5 h-5" /></button>}<button onClick={() => setShowRewards(true)} className="p-2.5 rounded-xl hover:bg-amber-50 text-amber-600" title="المكافآت"><Gift className="w-5 h-5" /></button>{selectedSubject && <button onClick={() => setSelectedSubject(null)} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-600"><Home className="w-5 h-5" /></button>}<button onClick={logout} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-500" title="قفل الحساب"><LogOut className="w-5 h-5" /></button></div></div></header>
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-gray-200"><div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between"><div className="flex items-center gap-3"><ChildAvatar learner={learner} size="small" /><div><h1 className={`font-black ${learner.theme.text} arabic-text`}>مدرسة {learner.nameAr}</h1><p className="text-xs text-gray-500 arabic-text">المستوى {stats.level} • {stats.xp} XP • 🪙 {availableCoins}{(progress.streak ?? 0) > 1 ? ` • 🔥 ${progress.streak} يوم` : ''}</p></div></div><div className="flex items-center gap-1"><button onClick={() => setShowTool(true)} className={`p-2.5 rounded-xl hover:bg-opacity-80 ${learner.theme.text}`} title="الأداة التفاعلية"><Sparkles className="w-5 h-5" /></button>
+        <button onClick={() => setShowQuickQuiz(true)} className="p-2.5 rounded-xl hover:bg-purple-50 text-purple-600" title="اختبار سريع ⚡"><Trophy className="w-5 h-5" /></button>{learner.id === 'noah' && <button onClick={() => setShowNoahGames(true)} className="p-2.5 rounded-xl hover:bg-orange-50 text-orange-600" title="ألعاب نوح"><Gamepad2 className="w-5 h-5" /></button>}<button onClick={() => setShowRewards(true)} className="p-2.5 rounded-xl hover:bg-amber-50 text-amber-600" title="المكافآت"><Gift className="w-5 h-5" /></button>{selectedSubject && <button onClick={() => setSelectedSubject(null)} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-600"><Home className="w-5 h-5" /></button>}<button onClick={logout} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-500" title="قفل الحساب"><LogOut className="w-5 h-5" /></button></div></div></header>
       <main className="max-w-6xl mx-auto px-4 py-7 md:py-10">
         {selectedSubject ? <div><button onClick={() => setSelectedSubject(null)} className="mb-5 flex items-center gap-2 text-gray-600 arabic-text"><ArrowRight className="w-5 h-5" /> كل المواد</button><div className={`rounded-3xl ${learner.theme.light} ${learner.theme.border} border p-6 mb-6`}><h1 className={`text-2xl font-black ${learner.theme.text} arabic-text`}>{SUBJECTS[selectedSubject].emoji} {SUBJECTS[selectedSubject].label}</h1><p className="text-gray-600 mt-2 arabic-text">{SUBJECTS[selectedSubject].description}</p></div><div className="grid md:grid-cols-2 gap-4">{subjectLessons.map(lesson => <button key={lesson.id} onClick={() => setActiveLessonId(lesson.id)} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md p-5 text-right"><div className="flex gap-4"><span className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${learner.theme.gradient} text-white text-2xl flex items-center justify-center`}>{lesson.emoji}</span><div className="flex-1"><div className="flex items-center justify-between"><h2 className="font-black text-gray-900 arabic-text">{lesson.title}</h2>{progress.completed[lesson.id] && <CheckCircle2 className="w-5 h-5 text-green-500" />}</div><p className="text-sm text-gray-500 mt-2 arabic-text">{lesson.subtitle}</p></div><ChevronLeft className="w-5 h-5 text-gray-300 mt-4" /></div></button>)}</div></div> : <><section className={`rounded-3xl bg-gradient-to-r ${learner.theme.gradient} text-white p-6 md:p-8 shadow-xl mb-7`}><div className="flex flex-col md:flex-row items-center gap-5"><ChildAvatar learner={learner} /><div className="text-center md:text-right flex-1"><p className="text-white/80 arabic-text">أهلاً بعودتك</p><h1 className="text-4xl font-black arabic-text">يا {learner.nameAr}</h1><p className="mt-3 text-white/90 arabic-text">حسابك محمي الآن. تعلّم الدرس، استمع لشرح بابا المعلم، وارفع مستواك من عملك الحقيقي.</p><div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4"><span className="bg-white/15 rounded-full px-3 py-1.5 text-xs">⭐ المستوى {stats.level}</span><span className="bg-white/15 rounded-full px-3 py-1.5 text-xs">⚡ {stats.xp} XP</span><span className="bg-white/15 rounded-full px-3 py-1.5 text-xs">🪙 {availableCoins} متاحة</span></div></div></div></section><section className="grid grid-cols-3 gap-3 mb-8"><div className="bg-white rounded-2xl border border-gray-100 p-4 text-center"><div className={`text-3xl font-black ${learner.theme.text}`}>{stats.completedLessons}</div><p className="text-xs text-gray-500 arabic-text">دروس مكتملة</p></div><div className="bg-white rounded-2xl border border-gray-100 p-4 text-center"><div className="text-3xl font-black text-blue-600">{stats.xp}</div><p className="text-xs text-gray-500">XP</p></div><button onClick={() => setShowRewards(true)} className="bg-white rounded-2xl border border-amber-200 p-4 text-center"><div className="text-3xl font-black text-amber-600">{availableCoins}</div><p className="text-xs text-gray-500 arabic-text">عملات المكافآت</p></button></section><section className="mb-8"><h2 className="text-2xl font-black text-gray-900 arabic-text mb-4">خطة اليوم</h2><div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">{dailyPlan.length ? dailyPlan.map(lesson => <button key={lesson.id} onClick={() => setActiveLessonId(lesson.id)} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md p-5 text-right"><span className={`w-12 h-12 rounded-xl bg-gradient-to-br ${learner.theme.gradient} text-white text-2xl flex items-center justify-center mb-4`}>{lesson.emoji}</span><h3 className="font-black text-gray-900 arabic-text">{lesson.title}</h3><p className="text-xs text-gray-500 mt-2 arabic-text">{SUBJECTS[lesson.subject].label}</p></button>) : <div className="sm:col-span-2 lg:col-span-4 rounded-2xl bg-green-50 border border-green-200 p-6 text-center"><Trophy className="w-8 h-8 text-green-600 mx-auto" /><p className="font-black text-green-900 arabic-text mt-2">أكملت جميع الدروس الحالية</p></div>}</div></section>{learner.id === 'noah' && <section className="mb-8"><h2 className="text-2xl font-black text-gray-900 arabic-text mb-4">🎮 ألعاب نوح</h2><div className="rounded-3xl bg-gradient-to-r from-orange-500 to-amber-500 text-white p-6 shadow-xl flex items-center justify-between gap-4"><div><p className="text-white/80 arabic-text text-sm mb-1">⚡ XP مضاعف على كل لعبة!</p><h3 className="text-xl font-black arabic-text">سباق سيارات • بطاقات • ترتيب • ركن السيارة</h3><p className="text-white/70 text-xs mt-2 arabic-text">4 ألعاب تفاعلية خاصة بنوح</p></div><button onClick={() => setShowNoahGames(true)} className="flex-shrink-0 bg-white text-orange-600 font-black arabic-text px-5 py-3 rounded-2xl shadow-md hover:bg-orange-50 active:scale-95 transition-transform flex items-center gap-2"><Gamepad2 className="w-5 h-5" /> العب الآن</button></div></section>}<section><h2 className="text-2xl font-black text-gray-900 arabic-text mb-4">المواد والمسارات</h2><div className="grid grid-cols-2 md:grid-cols-3 gap-4">{SUBJECT_ORDER.map(subject => { const lessons = curriculum.filter(lesson => lesson.subject === subject); const done = lessons.filter(lesson => progress.completed[lesson.id]).length; return <button key={subject} onClick={() => setSelectedSubject(subject)} className={`rounded-2xl border-2 ${subject === 'interest' ? learner.theme.border : 'border-gray-100'} ${subject === 'interest' ? learner.theme.light : 'bg-white'} p-5 text-right shadow-sm`}><div className="flex items-center justify-between"><span className="text-3xl">{subject === 'interest' ? learner.interestEmoji : SUBJECTS[subject].emoji}</span><span className="text-xs text-gray-500">{done}/{lessons.length}</span></div><h3 className={`font-black mt-4 arabic-text ${subject === 'interest' ? learner.theme.text : 'text-gray-900'}`}>{subject === 'interest' ? `مسار ${learner.interestAr}` : SUBJECTS[subject].label}</h3><div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-4"><div className={`h-full bg-gradient-to-r ${learner.theme.gradient}`} style={{ width: `${lessons.length ? (done / lessons.length) * 100 : 0}%` }} /></div></button>; })}</div></section></>}
       </main>

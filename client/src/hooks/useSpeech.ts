@@ -11,7 +11,7 @@ function splitText(text: string, maximum = 170): string[] {
   const clean = text.replace(/\s+/g, ' ').trim();
   if (!clean) return [];
 
-  const sentences = clean.split(/(?<=[.!؟،؛:])\s+/u);
+  const sentences = clean.match(/[^.!؟،؛:]+[.!؟،؛:]?/g) ?? [clean];
   const chunks: string[] = [];
   let current = '';
 
@@ -21,7 +21,7 @@ function splitText(text: string, maximum = 170): string[] {
       continue;
     }
     if (current) chunks.push(current);
-    current = sentence;
+    current = sentence.trim();
   }
 
   if (current) chunks.push(current);

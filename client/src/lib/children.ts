@@ -1,53 +1,51 @@
-// ── Family Children Configuration ────────────────────────────────────────────
-// Each child has their own profile, learning level, interests, and isolated
-// localStorage keys so progress never mixes between siblings.
+// Family learner configuration.
+// Age controls tone and examples; academic content starts from a respectful
+// foundation stage until the app has enough evidence to raise difficulty.
 
 export type ChildId = 'linda' | 'adam' | 'judy' | 'noah';
+export type LearningStage = 'foundation' | 'developing' | 'independent';
 
 export interface ChildProfile {
   id: ChildId;
   nameAr: string;
   nameEn: string;
   age: number;
-  photo: string;          // /public path
+  photo: string;
   emoji: string;
-  interest: string;       // Arabic label
-  interestEn: string;     // English label
+  interest: string;
+  interestEn: string;
   interestEmoji: string;
-  color: string;          // Tailwind gradient from-X
-  colorLight: string;     // Tailwind bg-X-50
-  colorBorder: string;    // Tailwind border-X-300
-  colorText: string;      // Tailwind text-X-700
-  colorRing: string;      // Tailwind ring-X-300
-  // Learning level
-  gradeLevel: 1 | 2 | 3 | 4 | 5 | 6;  // approximate school grade equivalent
+  color: string;
+  colorLight: string;
+  colorBorder: string;
+  colorText: string;
+  colorRing: string;
+  learningStage: LearningStage;
   difficulty: 'easy' | 'medium' | 'hard';
-  // Personalized dad message tone
-  dadToneAr: string;      // how dad addresses this child
+  dadToneAr: string;
   dadToneEn: string;
-  // localStorage namespace
   storageKey: string;
 }
 
 export const CHILDREN: Record<ChildId, ChildProfile> = {
   linda: {
     id: 'linda',
-    nameAr: 'لينيدا',
+    nameAr: 'ليندا',
     nameEn: 'Linda',
     age: 13,
     photo: '/linda.png',
     emoji: '🌸',
-    interest: 'الحياة والطبيعة',
-    interestEn: 'Life & Nature',
+    interest: 'الحياة والناس والطبيعة',
+    interestEn: 'Life, People & Nature',
     interestEmoji: '🌿',
     color: 'from-rose-400 to-pink-500',
     colorLight: 'bg-rose-50',
     colorBorder: 'border-rose-300',
     colorText: 'text-rose-700',
     colorRing: 'ring-rose-300',
-    gradeLevel: 6,
-    difficulty: 'hard',
-    dadToneAr: 'يا لينيدا حبيبتي',
+    learningStage: 'foundation',
+    difficulty: 'easy',
+    dadToneAr: 'يا ليندا حبيبتي',
     dadToneEn: 'my dear Linda',
     storageKey: 'linda',
   },
@@ -66,10 +64,10 @@ export const CHILDREN: Record<ChildId, ChildProfile> = {
     colorBorder: 'border-blue-300',
     colorText: 'text-blue-700',
     colorRing: 'ring-blue-300',
-    gradeLevel: 4,
-    difficulty: 'medium',
+    learningStage: 'foundation',
+    difficulty: 'easy',
     dadToneAr: 'يا آدم يا مخترعي',
-    dadToneEn: 'my little inventor Adam',
+    dadToneEn: 'my inventor Adam',
     storageKey: 'adam',
   },
   judy: {
@@ -79,18 +77,18 @@ export const CHILDREN: Record<ChildId, ChildProfile> = {
     age: 9,
     photo: '/judy.png',
     emoji: '⚽',
-    interest: 'الرياضة واللياقة',
-    interestEn: 'Sports & Fitness',
+    interest: 'الرياضة والحركة',
+    interestEn: 'Sports & Movement',
     interestEmoji: '🏅',
     color: 'from-green-400 to-teal-500',
     colorLight: 'bg-green-50',
     colorBorder: 'border-green-300',
     colorText: 'text-green-700',
     colorRing: 'ring-green-300',
-    gradeLevel: 3,
+    learningStage: 'foundation',
     difficulty: 'easy',
     dadToneAr: 'يا جودي بطلتي',
-    dadToneEn: 'my little champion Judy',
+    dadToneEn: 'my champion Judy',
     storageKey: 'judy',
   },
   noah: {
@@ -108,10 +106,10 @@ export const CHILDREN: Record<ChildId, ChildProfile> = {
     colorBorder: 'border-orange-300',
     colorText: 'text-orange-700',
     colorRing: 'ring-orange-300',
-    gradeLevel: 1,
+    learningStage: 'foundation',
     difficulty: 'easy',
     dadToneAr: 'يا نوح حبيب بابا',
-    dadToneEn: 'my little Noah',
+    dadToneEn: 'my dear Noah',
     storageKey: 'noah',
   },
 };
@@ -120,4 +118,10 @@ export const CHILDREN_ORDER: ChildId[] = ['linda', 'adam', 'judy', 'noah'];
 
 export function getChild(id: ChildId): ChildProfile {
   return CHILDREN[id];
+}
+
+export function getLearningStageLabel(stage: LearningStage): string {
+  if (stage === 'independent') return 'مرحلة التعلّم المستقل';
+  if (stage === 'developing') return 'مرحلة بناء المهارات';
+  return 'المرحلة التأسيسية';
 }

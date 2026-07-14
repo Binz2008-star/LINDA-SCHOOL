@@ -1,6 +1,8 @@
 // ── Family Children Configuration ────────────────────────────────────────────
 // Each child has their own profile, learning level, interests, and isolated
 // localStorage keys so progress never mixes between siblings.
+// PIN values are intentionally never stored in source code. SecureFamilySchool
+// creates salted hashes locally during the parent setup flow.
 
 export type ChildId = 'linda' | 'adam' | 'judy' | 'noah';
 
@@ -9,34 +11,29 @@ export interface ChildProfile {
   nameAr: string;
   nameEn: string;
   age: number;
-  photo: string;          // /public path
+  photo: string;
   emoji: string;
-  interest: string;       // Arabic label
-  interestEn: string;     // English label
+  interest: string;
+  interestEn: string;
   interestEmoji: string;
-  color: string;          // Tailwind gradient from-X
-  colorLight: string;     // Tailwind bg-X-50
-  colorBorder: string;    // Tailwind border-X-300
-  colorText: string;      // Tailwind text-X-700
-  colorRing: string;      // Tailwind ring-X-300
-  // Learning level
-  gradeLevel: 1 | 2 | 3 | 4 | 5 | 6;  // approximate school grade equivalent
+  color: string;
+  colorLight: string;
+  colorBorder: string;
+  colorText: string;
+  colorRing: string;
+  gradeLevel: 1 | 2 | 3 | 4 | 5 | 6;
   difficulty: 'easy' | 'medium' | 'hard';
-  // Personalized dad message tone
-  dadToneAr: string;      // how dad addresses this child
+  dadToneAr: string;
   dadToneEn: string;
-  // localStorage namespace
   storageKey: string;
-  // 4-digit PIN to protect this child's account
   pin: string;
-  // Preferred reward type
   rewardType: 'robux' | 'vbucks' | 'noon' | 'coins';
 }
 
 export const CHILDREN: Record<ChildId, ChildProfile> = {
   linda: {
     id: 'linda',
-    nameAr: 'لينيدا',
+    nameAr: 'ليندا',
     nameEn: 'Linda',
     age: 13,
     photo: '/linda.png',
@@ -51,10 +48,10 @@ export const CHILDREN: Record<ChildId, ChildProfile> = {
     colorRing: 'ring-rose-300',
     gradeLevel: 6,
     difficulty: 'hard',
-    dadToneAr: 'يا لينيدا حبيبتي',
+    dadToneAr: 'يا ليندا حبيبتي',
     dadToneEn: 'my dear Linda',
     storageKey: 'linda',
-    pin: '1234',
+    pin: '',
     rewardType: 'noon',
   },
   adam: {
@@ -77,7 +74,7 @@ export const CHILDREN: Record<ChildId, ChildProfile> = {
     dadToneAr: 'يا آدم يا مخترعي',
     dadToneEn: 'my little inventor Adam',
     storageKey: 'adam',
-    pin: '2345',
+    pin: '',
     rewardType: 'robux',
   },
   judy: {
@@ -100,7 +97,7 @@ export const CHILDREN: Record<ChildId, ChildProfile> = {
     dadToneAr: 'يا جودي بطلتي',
     dadToneEn: 'my little champion Judy',
     storageKey: 'judy',
-    pin: '3456',
+    pin: '',
     rewardType: 'vbucks',
   },
   noah: {
@@ -123,7 +120,7 @@ export const CHILDREN: Record<ChildId, ChildProfile> = {
     dadToneAr: 'يا نوح حبيب بابا',
     dadToneEn: 'my little Noah',
     storageKey: 'noah',
-    pin: '4567',
+    pin: '',
     rewardType: 'robux',
   },
 };

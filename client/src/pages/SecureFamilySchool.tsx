@@ -1,4 +1,5 @@
 import InteractiveTools from '@/components/InteractiveTools';
+import { LessonView } from '@/components/LessonView';
 import { useSpeech } from '@/hooks/useSpeech';
 import { ChildProfile } from '@/lib/children';
 import {
@@ -605,7 +606,8 @@ async function getTutorExplanation(learner: LearnerProfile, lesson: SchoolLesson
   }
 }
 
-function LessonView({
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _OldLessonView({
   learner,
   lesson,
   previous,

@@ -9,8 +9,8 @@
  * ─────────────────────────────────────────────────────────────────
  */
 
+import { getLessonsForChild, Lesson, LessonQuestion, TapRound } from '@/lib/childLessons';
 import { ChildProfile } from '@/lib/children';
-import { getLessonsForChild, Lesson, LessonQuestion } from '@/lib/childLessons';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, BookOpen, CheckCircle2,
@@ -28,8 +28,49 @@ export default function LessonScreen({ child, onBack }: Props) {
   const [lessonIdx, setLessonIdx] = useState<number | null>(null);
   const isRTL = true; // App is primarily Arabic
 
+  const isNoah = child.id === 'noah';
+
   // ── Lesson list ───────────────────────────────────────────────
   if (lessonIdx === null) {
+    // Noah gets big emoji buttons, no text counts
+    if (isNoah) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-lg mx-auto"
+          dir="rtl"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <button onClick={onBack} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+              <ArrowRight className="w-5 h-5 text-gray-500" />
+            </button>
+            <h2 className="text-2xl font-black text-gray-900">{child.emoji} العاب نوح</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {lessons.map((lesson, idx) => (
+              <motion.button
+                key={lesson.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.1 }}
+                onClick={() => setLessonIdx(idx)}
+                className={`aspect-square rounded-3xl flex flex-col items-center justify-center gap-3
+                  bg-gradient-to-br ${child.color} text-white shadow-lg
+                  active:scale-95 transition-all hover:shadow-xl`}
+              >
+                <span className="text-6xl">{lesson.emoji.slice(0, 4)}</span>
+                <span className="text-lg font-black arabic-text px-2 text-center leading-tight">
+                  {lesson.subject}
+                </span>
+                <span className="text-xs text-white/80">{lesson.tapRounds?.length ?? 0} 🎮</span>
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+      );
+    }
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -64,7 +105,7 @@ export default function LessonScreen({ child, onBack }: Props) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.07 }}
               onClick={() => setLessonIdx(idx)}
-              className="w-full text-right bg-white rounded-2xl shadow-sm border-2 border-gray-100 
+              className="w-full text-right bg-white rounded-2xl shadow-sm border-2 border-gray-100
                 hover:border-teal-300 hover:shadow-md transition-all p-4 flex items-center gap-4 group"
             >
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0
@@ -116,7 +157,9 @@ function LessonDetail({
   onBack: () => void;
   onNext?: () => void;
 }) {
-  const [phase, setPhase] = useState<'intro' | 'cards' | 'quiz' | 'done'>('intro');
+  const [phase, setPhase] = useState<'intro' | 'cards' | 'quiz' | 'done'>(
+    lesson.mode === 'tap_picture' ? 'quiz' : 'intro'
+  );
   const [cardIdx, setCardIdx] = useState(0);
   const [qIdx, setQIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -198,7 +241,7 @@ function LessonDetail({
               <p className="text-sm text-gray-500 mb-3 arabic-text">📝 حروف اليوم:</p>
               <div className="flex gap-2 flex-wrap">
                 {letters.map((l, i) => (
-                  <div key={i} className={`w-10 h-10 rounded-xl flex items-center justify-center 
+                  <div key={i} className={`w-10 h-10 rounded-xl flex items-center justify-center
                     text-xl font-bold bg-gradient-to-br ${child.color} text-white shadow-sm`}>
                     {l}
                   </div>
@@ -219,8 +262,8 @@ function LessonDetail({
                 <BookOpen className="w-5 h-5" />
                 <span className="arabic-text">
                   {lesson.mode === 'picture_card' ? '🖼️ ابدأ بطاقات الصور' :
-                   lesson.mode === 'letter_trace' ? '📝 تعلّم الحروف' :
-                   '🔤 تعلّم الكلمات'}
+                    lesson.mode === 'letter_trace' ? '📝 تعلّم الحروف' :
+                      '🔤 تعلّم الكلمات'}
                 </span>
               </button>
             )}
@@ -234,8 +277,8 @@ function LessonDetail({
               >
                 <Star className="w-5 h-5" />
                 <span className="arabic-text">
-                  {(lesson.mode === 'picture_card' || lesson.mode === 'letter_trace') 
-                    ? '✅ انتقل مباشرة للأسئلة' 
+                  {(lesson.mode === 'picture_card' || lesson.mode === 'letter_trace')
+                    ? '✅ انتقل مباشرة للأسئلة'
                     : `🎯 ابدأ الأسئلة (${questions.length} سؤال)`}
                 </span>
               </button>
@@ -288,8 +331,8 @@ function LessonDetail({
             className="bg-white rounded-3xl shadow-xl p-8 text-center border-4 border-gray-100"
           >
             {/* Big emoji / letter */}
-            <div className={`text-8xl mb-4 ${lesson.mode === 'letter_trace' 
-              ? `bg-gradient-to-br ${child.color} bg-clip-text text-transparent font-black` 
+            <div className={`text-8xl mb-4 ${lesson.mode === 'letter_trace'
+              ? `bg-gradient-to-br ${child.color} bg-clip-text text-transparent font-black`
               : ''}`}>
               {item.emoji}
             </div>
@@ -308,7 +351,7 @@ function LessonDetail({
           {cardIdx > 0 && (
             <button
               onClick={() => setCardIdx(i => i - 1)}
-              className="flex-1 py-3 rounded-xl font-semibold text-gray-600 bg-gray-100 
+              className="flex-1 py-3 rounded-xl font-semibold text-gray-600 bg-gray-100
                 hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
             >
               <ArrowRight className="w-5 h-5" />
@@ -341,6 +384,20 @@ function LessonDetail({
           )}
         </div>
       </motion.div>
+    );
+  }
+
+  // ── Tap Picture phase (Noah) ──────────────────────────────────
+  if (phase === 'quiz' && lesson.mode === 'tap_picture') {
+    const rounds: TapRound[] = lesson.tapRounds ?? [];
+    return (
+      <TapPictureGame
+        rounds={rounds}
+        child={child}
+        lesson={lesson}
+        onDone={(sc: number) => { setScore(sc); setPhase('done'); }}
+        onBack={onBack}
+      />
     );
   }
 
@@ -394,23 +451,23 @@ function LessonDetail({
                     transition={{ delay: i * 0.07 }}
                     onClick={() => handleAnswer(i)}
                     disabled={answered}
-                    className={`w-full p-4 rounded-xl text-right font-medium text-base 
+                    className={`w-full p-4 rounded-xl text-right font-medium text-base
                       flex items-center gap-3 transition-all
                       ${answered && isCorrectOpt
                         ? 'bg-green-50 border-2 border-green-500 text-green-900'
                         : answered && isSelected && !isCorrectOpt
-                        ? 'bg-red-50 border-2 border-red-500 text-red-900'
-                        : answered
-                        ? 'bg-gray-50 border-2 border-gray-200 text-gray-400 cursor-default'
-                        : 'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50 cursor-pointer'}`}
+                          ? 'bg-red-50 border-2 border-red-500 text-red-900'
+                          : answered
+                            ? 'bg-gray-50 border-2 border-gray-200 text-gray-400 cursor-default'
+                            : 'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50 cursor-pointer'}`}
                   >
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0
                       ${answered && isCorrectOpt ? 'bg-green-500 text-white' :
                         answered && isSelected ? 'bg-red-500 text-white' :
-                        'bg-gray-200 text-gray-600'}`}>
+                          'bg-gray-200 text-gray-600'}`}>
                       {answered && isCorrectOpt ? <CheckCircle2 className="w-4 h-4" /> :
-                       answered && isSelected  ? <XCircle className="w-4 h-4" /> :
-                       ['أ', 'ب', 'ج', 'د'][i]}
+                        answered && isSelected ? <XCircle className="w-4 h-4" /> :
+                          ['أ', 'ب', 'ج', 'د'][i]}
                     </div>
                     <span className="arabic-text flex-1">{opt}</span>
                     {answered && isCorrectOpt && (
@@ -431,8 +488,8 @@ function LessonDetail({
                   className="mt-5 space-y-3"
                 >
                   <div className={`p-4 rounded-xl arabic-text leading-relaxed text-sm
-                    ${isCorrect ? 'bg-green-50 border border-green-200 text-green-900' 
-                                : 'bg-violet-50 border border-violet-200 text-violet-900'}`}>
+                    ${isCorrect ? 'bg-green-50 border border-green-200 text-green-900'
+                      : 'bg-violet-50 border border-violet-200 text-violet-900'}`}>
                     <div className="flex items-start gap-2">
                       <span className="text-xl flex-shrink-0 mt-0.5">{isCorrect ? '🎉' : '💡'}</span>
                       <p>{q.explanation}</p>
@@ -477,8 +534,8 @@ function LessonDetail({
         </div>
         <h3 className="text-2xl font-black text-gray-900 arabic-text mb-2">
           {pct === 100 ? `أحسنت يا ${child.nameAr}!` :
-           pct >= 60 ? `عمل رائع يا ${child.nameAr}!` :
-           `لا بأس يا ${child.nameAr}، حاول مرة أخرى!`}
+            pct >= 60 ? `عمل رائع يا ${child.nameAr}!` :
+              `لا بأس يا ${child.nameAr}، حاول مرة أخرى!`}
         </h3>
         <p className="text-gray-500 arabic-text mb-6">
           {score} / {questions.length} إجابة صحيحة
@@ -493,7 +550,7 @@ function LessonDetail({
         <div className="space-y-3">
           <button
             onClick={() => { setPhase('intro'); setQIdx(0); setSelected(null); setScore(0); setCardIdx(0); }}
-            className="w-full py-3 rounded-xl font-bold text-gray-700 bg-gray-100 
+            className="w-full py-3 rounded-xl font-bold text-gray-700 bg-gray-100
               hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
           >
             <RotateCcw className="w-4 h-4" />
@@ -511,13 +568,174 @@ function LessonDetail({
           )}
           <button
             onClick={onBack}
-            className="w-full py-3 rounded-xl font-semibold text-gray-500 
+            className="w-full py-3 rounded-xl font-semibold text-gray-500
               hover:text-gray-700 transition-colors arabic-text"
           >
             العودة لقائمة الدروس
           </button>
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// TapPictureGame — Noah's visual-only game (no reading required)
+// Shows a big emoji prompt → child taps the matching picture
+// ─────────────────────────────────────────────────────────────────
+function TapPictureGame({
+  rounds, child, lesson, onDone, onBack,
+}: {
+  rounds: TapRound[];
+  child: ChildProfile;
+  lesson: Lesson;
+  onDone: (score: number) => void;
+  onBack: () => void;
+}) {
+  const [roundIdx, setRoundIdx] = useState(0);
+  const [tapped, setTapped] = useState<number | null>(null);
+  const [score, setScore] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(false);
+
+  const round = rounds[roundIdx];
+  const isCorrectTap = tapped !== null && round.choices[tapped]?.correct;
+
+  const handleTap = (i: number) => {
+    if (tapped !== null) return;
+    setTapped(i);
+    const correct = round.choices[i].correct;
+    if (correct) {
+      setScore(s => s + 1);
+      setShowCelebration(true);
+      setTimeout(() => {
+        setShowCelebration(false);
+        if (roundIdx < rounds.length - 1) {
+          setRoundIdx(r => r + 1);
+          setTapped(null);
+        } else {
+          onDone(score + 1);
+        }
+      }, 1200);
+    }
+  };
+
+  const handleWrongNext = () => {
+    if (roundIdx < rounds.length - 1) {
+      setRoundIdx(r => r + 1);
+      setTapped(null);
+    } else {
+      onDone(score);
+    }
+  };
+
+  const progress = ((roundIdx + 1) / rounds.length) * 100;
+
+  return (
+    <motion.div
+      key={roundIdx}
+      initial={{ opacity: 0, scale: 0.92 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="w-full max-w-sm mx-auto"
+      dir="rtl"
+    >
+      {/* Back + progress */}
+      <div className="flex items-center gap-3 mb-4">
+        <button onClick={onBack} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+          <ArrowRight className="w-5 h-5 text-gray-500" />
+        </button>
+        <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+          <motion.div
+            className={`h-full bg-gradient-to-r ${child.color} rounded-full`}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.4 }}
+          />
+        </div>
+        <span className="text-sm font-bold text-gray-500">{roundIdx + 1}/{rounds.length}</span>
+      </div>
+
+      {/* Prompt card */}
+      <div className={`bg-gradient-to-br ${child.color} rounded-3xl p-6 text-center mb-5 shadow-xl`}>
+        <p className="text-white/80 text-base font-semibold arabic-text mb-2">أيّ واحد هو؟</p>
+        <div className="text-9xl leading-none mb-3">{round.promptEmoji}</div>
+        <div className="bg-white/25 rounded-2xl py-2 px-6 inline-block">
+          <span className="text-white text-2xl font-black arabic-text">{round.promptLabel}</span>
+        </div>
+      </div>
+
+      {/* Celebration overlay */}
+      <AnimatePresence>
+        {showCelebration && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.5 }}
+            className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+          >
+            <div className="text-center">
+              <div className="text-8xl mb-4">{round.celebrationEmoji}</div>
+              <div className="text-4xl font-black text-green-600 arabic-text">أحسنت! 🎉</div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Choices grid */}
+      <div className="grid grid-cols-2 gap-4">
+        {round.choices.map((choice: { emoji: string; label: string; correct: boolean }, i: number) => {
+          const isSelected = tapped === i;
+          const isRight = choice.correct;
+          const revealedCorrect = tapped !== null && isRight;
+          const revealedWrong = isSelected && !isRight;
+          return (
+            <motion.button
+              key={i}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleTap(i)}
+              disabled={tapped !== null}
+              className={`rounded-3xl p-4 flex flex-col items-center justify-center gap-2 min-h-[120px]
+                border-4 transition-all shadow-md
+                ${revealedCorrect
+                  ? 'bg-green-50 border-green-500 shadow-green-200'
+                  : revealedWrong
+                    ? 'bg-red-50 border-red-400 shadow-red-100'
+                    : tapped !== null
+                      ? 'bg-gray-50 border-gray-200 opacity-50'
+                      : 'bg-white border-gray-200 hover:border-teal-300 hover:bg-teal-50 cursor-pointer'}`}
+            >
+              <span className="text-6xl">{choice.emoji}</span>
+              <span className={`text-base font-black arabic-text
+                ${revealedCorrect ? 'text-green-700' : revealedWrong ? 'text-red-600' : 'text-gray-700'}`}>
+                {choice.label}
+              </span>
+              {revealedCorrect && <CheckCircle2 className="w-6 h-6 text-green-500" />}
+              {revealedWrong && <XCircle className="w-6 h-6 text-red-400" />}
+            </motion.button>
+          );
+        })}
+      </div>
+
+      {/* Wrong answer — try next button */}
+      <AnimatePresence>
+        {tapped !== null && !isCorrectTap && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-5"
+          >
+            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 text-center mb-3">
+              <span className="text-2xl">😊</span>
+              <p className="text-orange-800 font-bold arabic-text mt-1">حاول مرة ثانية في المرة القادمة!</p>
+            </div>
+            <button
+              onClick={handleWrongNext}
+              className={`w-full py-4 rounded-2xl font-bold text-white text-lg
+                bg-gradient-to-r ${child.color} shadow-md active:scale-95 transition-all arabic-text`}
+            >
+              التالي →
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

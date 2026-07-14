@@ -9,6 +9,7 @@
  * ─────────────────────────────────────────────────────────────────
  */
 
+import InteractiveTools from '@/components/InteractiveTools';
 import { useSpeech } from '@/hooks/useSpeech';
 import { getLessonsForChild, Lesson, LessonQuestion, TapRound } from '@/lib/childLessons';
 import { ChildProfile } from '@/lib/children';
@@ -27,9 +28,12 @@ interface Props {
 export default function LessonScreen({ child, onBack }: Props) {
   const lessons = getLessonsForChild(child.id);
   const [lessonIdx, setLessonIdx] = useState<number | null>(null);
+  const [showTool, setShowTool] = useState(false);
   const isRTL = true; // App is primarily Arabic
 
   const isNoah = child.id === 'noah';
+
+  if (showTool) return <InteractiveTools child={child} onBack={() => setShowTool(false)} />;
 
   // ── Lesson list ───────────────────────────────────────────────
   if (lessonIdx === null) {
@@ -42,12 +46,20 @@ export default function LessonScreen({ child, onBack }: Props) {
           className="w-full max-w-lg mx-auto"
           dir="rtl"
         >
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-4">
             <button onClick={onBack} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
               <ArrowRight className="w-5 h-5 text-gray-500" />
             </button>
             <h2 className="text-2xl font-black text-gray-900">{child.emoji} العاب نوح</h2>
           </div>
+          {/* Interactive tool button */}
+          <button
+            onClick={() => setShowTool(true)}
+            className={`w-full mb-4 py-3 rounded-2xl font-bold text-white bg-gradient-to-r ${child.color} shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2`}
+          >
+            <span className="text-xl">✍️</span>
+            <span className="arabic-text">تتبع الحروف</span>
+          </button>
           <div className="grid grid-cols-2 gap-4">
             {lessons.map((lesson, idx) => (
               <motion.button
@@ -80,14 +92,14 @@ export default function LessonScreen({ child, onBack }: Props) {
         dir="rtl"
       >
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <button
             onClick={onBack}
             className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
           >
             <ArrowRight className="w-5 h-5 text-gray-500" />
           </button>
-          <div>
+          <div className="flex-1">
             <h2 className="text-xl font-bold text-gray-900 arabic-text">
               {child.emoji} دروس {child.nameAr}
             </h2>
@@ -95,6 +107,13 @@ export default function LessonScreen({ child, onBack }: Props) {
               اختر درساً لتبدأ التعلم
             </p>
           </div>
+          <button
+            onClick={() => setShowTool(true)}
+            className={`px-4 py-2 rounded-xl font-bold text-white bg-gradient-to-r ${child.color} shadow-md active:scale-95 transition-all text-sm flex items-center gap-1.5`}
+          >
+            <span>{child.id === 'judy' ? '🎨' : child.id === 'adam' ? '🔀' : '🧠'}</span>
+            <span className="arabic-text">{child.id === 'judy' ? 'ارسم' : child.id === 'adam' ? 'رتّب' : 'خريطة'}</span>
+          </button>
         </div>
 
         {/* Lesson cards */}
@@ -504,6 +523,7 @@ function QuizPhase({
   // Auto-read question when it changes
   useEffect(() => {
     speak(q.question, { lang: 'ar', rate: 0.82 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q.question]);
 
   const readQuestion = () => speak(q.question, { lang: 'ar', rate: 0.82 });
@@ -657,7 +677,8 @@ function TapPictureGame({
   // Auto-read the prompt label on every new round
   useEffect(() => {
     speak(`أين هو ${round.promptLabel}؟`, { lang: 'ar', rate: 0.78 });
-  }, [roundIdx]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundIdx, round.promptLabel]);
   const isCorrectTap = tapped !== null && round.choices[tapped]?.correct;
 
   const handleTap = (i: number) => {
@@ -665,17 +686,20 @@ function TapPictureGame({
     setTapped(i);
     const correct = round.choices[i].correct;
     if (correct) {
-      setScore(s => s + 1);
+      setScore(s => {
+        const next = s + 1;
+        setTimeout(() => {
+          setShowCelebration(false);
+          if (roundIdx < rounds.length - 1) {
+            setRoundIdx(r => r + 1);
+            setTapped(null);
+          } else {
+            onDone(next);
+          }
+        }, 1200);
+        return next;
+      });
       setShowCelebration(true);
-      setTimeout(() => {
-        setShowCelebration(false);
-        if (roundIdx < rounds.length - 1) {
-          setRoundIdx(r => r + 1);
-          setTapped(null);
-        } else {
-          onDone(score + 1);
-        }
-      }, 1200);
     }
   };
 

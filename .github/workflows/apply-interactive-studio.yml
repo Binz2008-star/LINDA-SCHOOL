@@ -10,16 +10,29 @@ on:
       - client/src/hooks/useSpeech.ts
       - client/src/lib/children.ts
       - api/tutor.js
+      - api/tts.js
+      - .github/workflows/apply-interactive-studio.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/apply-interactive-studio.mjs
+      - client/src/components/LessonActivityStudio.tsx
+      - client/src/hooks/useSpeech.ts
+      - client/src/lib/children.ts
+      - api/tutor.js
+      - api/tts.js
       - .github/workflows/apply-interactive-studio.yml
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   apply-and-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out branch
+      - name: Check out feature branch
         uses: actions/checkout@v4
         with:
           ref: feat/interactive-learning-studio

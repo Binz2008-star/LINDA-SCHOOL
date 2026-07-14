@@ -567,7 +567,7 @@ export default function LessonActivityStudio({ learner, lesson, onBack, onComple
             <p className="text-white/85 mt-2 arabic-text">سنرتب فكرة، ثم نكتبها، ونرسمها، ونشرحها بصوتنا قبل المراجعة القصيرة.</p>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2 mt-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-6">
           {steps.map((item, index) => (
             <div key={item} className={`rounded-xl px-3 py-2 text-center text-sm font-bold arabic-text ${index < stepIndex ? 'bg-green-400/30' : index === stepIndex ? 'bg-white text-gray-900' : 'bg-white/15 text-white/70'}`}>
               <span className="ml-1">{index < stepIndex ? '✓' : STEP_EMOJI[item]}</span>{STEP_LABELS[item]}

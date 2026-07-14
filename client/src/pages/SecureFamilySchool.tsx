@@ -1,7 +1,6 @@
-import InteractiveTools from '@/components/InteractiveTools';
-import LessonActivityStudio from '@/components/LessonActivityStudio';
+﻿import InteractiveTools from '@/components/InteractiveTools';
+import { LessonView } from '@/components/LessonView';
 import NoahGames from '@/components/NoahGames';
-import { useSpeech } from '@/hooks/useSpeech';
 import { ChildProfile } from '@/lib/children';
 import {
   getCurriculum,
@@ -17,22 +16,16 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
-  BookOpen,
   CheckCircle2,
   ChevronLeft,
   Gamepad2,
   Gift,
   Home,
-  Lightbulb,
-  ListChecks,
   Lock,
   LogOut,
-  Play,
-  RotateCcw,
   Settings,
   ShieldCheck,
   Sparkles,
-  Target,
   Trophy,
   Volume2,
   XCircle
@@ -586,89 +579,6 @@ function RewardsView({
       <section className="mt-6 bg-white rounded-2xl border border-gray-100 p-5"><h2 className="font-black text-gray-900 arabic-text mb-3">حالة طلباتك</h2>{learnerRequests.length === 0 ? <p className="text-sm text-gray-500 arabic-text">لم تطلب مكافأة بعد.</p> : <div className="space-y-2">{learnerRequests.slice(0, 6).map(request => <div key={request.id} className="flex items-center justify-between rounded-xl bg-gray-50 p-3"><span className="text-sm arabic-text">{request.label}</span><span className={`text-xs font-bold arabic-text ${request.status === 'approved' ? 'text-green-600' : request.status === 'declined' ? 'text-red-500' : 'text-amber-600'}`}>{request.status === 'approved' ? 'وافق بابا ✓' : request.status === 'declined' ? 'مرفوض — عادت العملات' : 'بانتظار بابا'}</span></div>)}</div>}</section>
     </div>
   );
-}
-
-async function getTutorExplanation(learner: LearnerProfile, lesson: SchoolLesson, selectedIndex: number, questionIndex: number): Promise<string> {
-  const question = lesson.questions[questionIndex];
-  try {
-    const response = await fetch('/api/tutor', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        learner: { nameAr: learner.nameAr, age: learner.age, gender: learner.gender, interestAr: learner.interestAr },
-        lesson: { title: lesson.title, subject: SUBJECTS[lesson.subject].label },
-        question,
-        selectedIndex,
-      }),
-    });
-    if (!response.ok) throw new Error('Tutor unavailable');
-    const data = await response.json() as { explanation?: string };
-    return data.explanation?.trim() || question.explanation;
-  } catch {
-    return question.explanation;
-  }
-}
-
-function LessonView({
-  learner,
-  lesson,
-  previous,
-  onComplete,
-  onBack,
-}: {
-  learner: LearnerProfile;
-  lesson: SchoolLesson;
-  previous?: LessonResult;
-  onComplete: (correct: number, total: number) => void;
-  onBack: () => void;
-}) {
-  const [phase, setPhase] = useState<'teach' | 'activity' | 'practice' | 'done'>('teach');
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [tutorText, setTutorText] = useState('');
-  const [tutorLoading, setTutorLoading] = useState(false);
-  const { speak, stop, isSupported } = useSpeech();
-  const question = lesson.questions[questionIndex];
-  const answered = selected !== null;
-  const isCorrect = answered && selected === question.correctAnswer;
-
-  useEffect(() => () => stop(), [stop]);
-
-  const selectAnswer = async (index: number) => {
-    if (answered) return;
-    setSelected(index);
-    if (index === question.correctAnswer) setCorrectCount(value => value + 1);
-    setTutorLoading(true);
-    setTutorText('');
-    const explanation = await getTutorExplanation(learner, lesson, index, questionIndex);
-    setTutorText(explanation);
-    setTutorLoading(false);
-  };
-
-  const nextQuestion = () => {
-    stop();
-    if (questionIndex < lesson.questions.length - 1) {
-      setQuestionIndex(value => value + 1);
-      setSelected(null);
-      setTutorText('');
-      return;
-    }
-    onComplete(correctCount, lesson.questions.length);
-    setPhase('done');
-  };
-
-  const lessonText = [lesson.title, lesson.subtitle, ...lesson.objectives, ...lesson.explanation, lesson.example, lesson.activity, lesson.remember].join('. ');
-  const questionText = `${question.question}. الخيارات: ${question.options.map((option, index) => `${['أ', 'ب', 'ج', 'د'][index]}، ${option}`).join('. ')}`;
-
-  if (phase === 'teach') return <div className="max-w-3xl mx-auto" dir="rtl"><button onClick={onBack} className="mb-5 flex items-center gap-2 text-gray-600 arabic-text"><ArrowRight className="w-5 h-5" /> العودة للدروس</button><div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden"><div className={`h-2 bg-gradient-to-r ${learner.theme.gradient}`} /><div className="p-6 md:p-9"><div className="flex items-start gap-4 mb-6"><div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${learner.theme.gradient} text-white text-3xl flex items-center justify-center`}>{lesson.emoji}</div><div><p className={`text-sm font-bold ${learner.theme.text} arabic-text`}>{SUBJECTS[lesson.subject].label}</p><h1 className="text-3xl font-black text-gray-900 arabic-text">{lesson.title}</h1><p className="text-gray-500 mt-2 arabic-text">{lesson.subtitle}</p>{previous && <span className="inline-flex mt-3 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold arabic-text">تمت دراسته سابقاً</span>}</div></div>{isSupported && <button onClick={() => speak(lessonText, { lang: 'ar', rate: 0.82 })} className="mb-5 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold arabic-text"><Volume2 className="w-4 h-4" /> اقرأ الدرس لي</button>}<section className="mb-5"><h2 className="font-black text-gray-900 arabic-text mb-3 flex items-center gap-2"><Target className={`w-5 h-5 ${learner.theme.text}`} /> ماذا سنتعلم؟</h2><div className="grid sm:grid-cols-2 gap-3">{lesson.objectives.map(item => <div key={item} className="rounded-xl bg-gray-50 p-3 flex gap-2"><CheckCircle2 className="w-4 h-4 text-green-500 mt-1" /><span className="text-sm arabic-text">{item}</span></div>)}</div></section><section className="rounded-2xl bg-blue-50 p-5 mb-5"><h2 className="font-black text-blue-950 arabic-text mb-3 flex items-center gap-2"><BookOpen className="w-5 h-5" /> الشرح</h2>{lesson.explanation.map(item => <p key={item} className="leading-loose text-blue-950/80 arabic-text mb-2">{item}</p>)}</section>{lesson.visuals && <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">{lesson.visuals.map(item => <div key={item.label} className={`rounded-2xl ${learner.theme.light} ${learner.theme.border} border p-4 text-center`}><div className="text-4xl">{item.emoji}</div><p className={`mt-2 font-bold ${learner.theme.text} arabic-text`}>{item.label}</p></div>)}</section>}<section className={`rounded-2xl ${learner.theme.light} ${learner.theme.border} border p-5 mb-5`}><h2 className={`font-black ${learner.theme.text} arabic-text mb-2 flex items-center gap-2`}><Sparkles className="w-5 h-5" /> مثال مرتبط بك</h2><p className="leading-loose arabic-text">{lesson.example}</p></section><section className="rounded-2xl bg-violet-50 p-5 mb-5"><h2 className="font-black text-violet-950 arabic-text mb-2 flex items-center gap-2"><ListChecks className="w-5 h-5" /> نشاط عملي</h2><p className="leading-loose arabic-text">{lesson.activity}</p></section><section className="rounded-2xl bg-amber-50 border border-amber-200 p-5 mb-6"><h2 className="font-black text-amber-950 arabic-text mb-2 flex items-center gap-2"><Lightbulb className="w-5 h-5" /> تذكّر</h2><p className="arabic-text">{lesson.remember}</p></section><button onClick={() => setPhase('activity')} className={`w-full min-h-[52px] rounded-xl bg-gradient-to-r ${learner.theme.gradient} text-white font-black arabic-text flex items-center justify-center gap-2`}><Play className="w-5 h-5" /> فهمت الشرح — ابدأ المختبر التفاعلي</button></div></div></div>;
-
-  if (phase === 'activity') return <LessonActivityStudio learner={learner} lesson={lesson} onBack={() => setPhase('teach')} onComplete={() => setPhase('practice')} />;
-
-  if (phase === 'practice') return <div className="max-w-4xl mx-auto" dir="rtl"><button onClick={() => setPhase('teach')} className="mb-5 flex items-center gap-2 text-gray-600 arabic-text"><ArrowRight className="w-5 h-5" /> العودة للشرح</button><motion.div key={questionIndex} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl border border-gray-100 shadow-xl p-6 md:p-8"><div className="flex items-center justify-between mb-4"><span className={`text-sm font-bold ${learner.theme.text} arabic-text`}>سؤال {questionIndex + 1} من {lesson.questions.length}</span>{isSupported && <button onClick={() => speak(questionText, { lang: 'ar', rate: 0.82 })} className="p-2 rounded-xl bg-blue-50 text-blue-700" title="اسمع السؤال"><Volume2 className="w-5 h-5" /></button>}</div><h1 className="text-2xl font-black text-gray-900 leading-relaxed arabic-text mb-6">{question.question}</h1><div className="space-y-3">{question.options.map((option, index) => { const correct = answered && index === question.correctAnswer; const wrong = answered && index === selected && !correct; return <button key={option} disabled={answered} onClick={() => selectAnswer(index)} className={`w-full min-h-[58px] rounded-xl border-2 p-4 text-right flex gap-3 arabic-text ${correct ? 'bg-green-50 border-green-500 text-green-950' : wrong ? 'bg-red-50 border-red-400 text-red-950' : answered ? 'bg-gray-50 border-gray-200 text-gray-400' : 'bg-gray-50 border-gray-200 hover:border-blue-300'}`}><span className={`w-8 h-8 rounded-full flex items-center justify-center font-black ${correct ? 'bg-green-500 text-white' : wrong ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600'}`}>{correct ? <CheckCircle2 className="w-5 h-5" /> : wrong ? <XCircle className="w-5 h-5" /> : ['أ', 'ب', 'ج', 'د'][index]}</span><span className="flex-1">{option}</span></button>; })}</div><AnimatePresence>{answered && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6"><div className={`rounded-2xl border p-5 ${isCorrect ? 'bg-green-50 border-green-200' : 'bg-violet-50 border-violet-200'}`}><h2 className="font-black arabic-text mb-2">{isCorrect ? `أحسنت يا ${learner.nameAr}` : `لا بأس يا ${learner.nameAr} — الخطأ أصبح درساً`}</h2>{tutorLoading ? <p className="text-gray-500 arabic-text">بابا المعلم يحضّر شرحاً مناسباً لك...</p> : <><p className="leading-loose arabic-text">{tutorText || question.explanation}</p>{isSupported && <button onClick={() => speak(tutorText || question.explanation, { lang: 'ar', rate: 0.82 })} className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-gray-200 text-sm font-bold arabic-text"><Volume2 className="w-4 h-4" /> اسمع شرح بابا</button>}</>}</div><button disabled={tutorLoading} onClick={nextQuestion} className={`w-full mt-4 min-h-[52px] rounded-xl bg-gradient-to-r ${learner.theme.gradient} text-white font-black arabic-text disabled:opacity-50`}>{questionIndex < lesson.questions.length - 1 ? 'فهمت — السؤال التالي' : 'فهمت — أكمل الدرس'}</button></motion.div>}</AnimatePresence></motion.div></div>;
-
-  const percentage = lesson.questions.length ? Math.round((correctCount / lesson.questions.length) * 100) : 100;
-  return <div className="max-w-md mx-auto text-center" dir="rtl"><div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-8"><div className="text-6xl mb-4">{percentage >= 80 ? '🏆' : percentage >= 50 ? '🌱' : '📚'}</div><h1 className="text-2xl font-black text-gray-900 arabic-text">أكملت الدرس يا {learner.nameAr}</h1><p className="text-gray-600 mt-3 arabic-text">أكملت الشرح والمختبر العملي والمراجعة القصيرة. تم حفظ أفضل نتيجة، وإعادة الدرس لا تضاعف العملات.</p><div className={`w-28 h-28 mx-auto my-6 rounded-full bg-gradient-to-br ${learner.theme.gradient} text-white flex items-center justify-center text-3xl font-black`}>{percentage}%</div><button onClick={onBack} className={`w-full min-h-[50px] rounded-xl bg-gradient-to-r ${learner.theme.gradient} text-white font-black arabic-text`}><Home className="w-5 h-5 inline ml-2" /> العودة للدروس</button><button onClick={() => { setPhase('teach'); setQuestionIndex(0); setSelected(null); setCorrectCount(0); setTutorText(''); }} className="w-full mt-3 min-h-[48px] rounded-xl bg-gray-100 text-gray-700 font-bold arabic-text"><RotateCcw className="w-5 h-5 inline ml-2" /> أعد الدرس</button></div></div>;
 }
 
 export default function SecureFamilySchool() {

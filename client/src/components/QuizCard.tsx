@@ -2,34 +2,43 @@ import { useDeepSeekTutor } from '@/hooks/useDeepSeekTutor';
 import { ChildProfile } from '@/lib/children';
 import { QuizQuestion } from '@/lib/quizData';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, ChevronDown, ChevronUp, Heart, Loader2, Sparkles, XCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Heart, Loader2, Sparkles, XCircle } from 'lucide-react';
 import { useState } from 'react';
 
 interface QuizCardProps {
   question: QuizQuestion;
   onAnswer: (selectedIndex: number, isCorrect: boolean) => void;
+  onNext: () => void;           // caller controls navigation
   isAnswered?: boolean;
   selectedAnswer?: number;
   showResult?: boolean;
+  isLast?: boolean;
   weakTopics?: string[];
   accuracyOnTopic?: number | null;
   childProfile?: ChildProfile;
 }
 
+const OPTION_LABELS = ['أ', 'ب', 'ج', 'د'];
+const OPTION_LABELS_EN = ['A', 'B', 'C', 'D'];
+
 export default function QuizCard({
   question,
   onAnswer,
+  onNext,
   isAnswered = false,
   selectedAnswer,
   showResult = false,
+  isLast = false,
   weakTopics = [],
   accuracyOnTopic = null,
   childProfile,
 }: QuizCardProps) {
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [tutorOpen, setTutorOpen] = useState(false);
   const [showBurst, setShowBurst] = useState(false);
   const { explanation, loading, explain, reset } = useDeepSeekTutor();
+
+  const isRTL = question.language === 'ar';
+  const isMale = childProfile ? ['adam', 'noah'].includes(childProfile.id) : false;
+  const childName = childProfile ? (isRTL ? childProfile.nameAr : childProfile.nameEn) : (isRTL ? 'لينيدا' : 'Linda');
 
   const isWeakTopic = weakTopics.some(t =>
     t.toLowerCase().includes((question.subject || '').toLowerCase()) ||
@@ -38,23 +47,18 @@ export default function QuizCard({
 
   const handleSelectAnswer = (index: number) => {
     if (isAnswered) return;
-
-    setIsAnimating(true);
     const isCorrect = index === question.correctAnswer;
     reset();
-    setTutorOpen(false);
-    setShowBurst(false);
-
-    setTimeout(() => {
-      onAnswer(index, isCorrect);
-      setIsAnimating(false);
-      explain(question, index, { weakTopics, accuracy: accuracyOnTopic, child: childProfile });
-      if (!isCorrect) setTutorOpen(true);
-      if (isCorrect) { setShowBurst(true); setTimeout(() => setShowBurst(false), 1800); }
-    }, 300);
+    onAnswer(index, isCorrect);
+    explain(question, index, { weakTopics, accuracy: accuracyOnTopic, child: childProfile });
+    if (isCorrect) {
+      setShowBurst(true);
+      setTimeout(() => setShowBurst(false), 1800);
+    }
   };
 
-  const isRTL = question.language === 'ar';
+  const answered = showResult && selectedAnswer !== undefined;
+  const isCorrectAnswer = answered && selectedAnswer === question.correctAnswer;
 
   return (
     <motion.div
@@ -64,196 +68,231 @@ export default function QuizCard({
       dir={isRTL ? 'rtl' : 'ltr'}
       className={`w-full max-w-2xl mx-auto ${isRTL ? 'arabic-text' : ''}`}
     >
-      <div className="bg-white rounded-2xl shadow-lg p-6 md:p-10">
-        {/* Question */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 flex-wrap mb-4">
-            <span className="inline-block px-3 py-1 bg-gradient-to-r from-teal-100 to-purple-100 rounded-full text-sm font-semibold text-teal-700">
-              {question.subject || question.category}
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+
+        {/* ── Subject bar ─────────────────────────────────────────── */}
+        <div className="flex items-center gap-2 px-5 pt-5 pb-3 flex-wrap">
+          <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-teal-100 to-purple-100 rounded-full text-sm font-semibold text-teal-700">
+            <BookOpen className="w-3.5 h-3.5" />
+            {question.subject || question.category}
+          </span>
+          {question.lesson && (
+            <span className="inline-block px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-500">
+              {question.lesson}
             </span>
-            {question.lesson && (
-              <span className="inline-block px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-500">
-                {question.lesson}
-              </span>
-            )}
-            {isWeakTopic && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">
-                <Sparkles className="w-3 h-3" />
-                {isRTL ? 'راجعي هذا الموضوع' : 'Review focus'}
-              </span>
-            )}
-          </div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 leading-relaxed">
-            {question.question}
-          </h2>
-          <div className={`flex items-center gap-2 mt-3 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
-            <div className="h-1 w-10 bg-gradient-to-r from-teal-500 to-purple-500 rounded-full"></div>
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-              {question.difficulty === 'easy' ? (isRTL ? 'سهل' : 'Easy') :
-                question.difficulty === 'medium' ? (isRTL ? 'متوسط' : 'Medium') :
-                  (isRTL ? 'صعب' : 'Hard')}
+          )}
+          {isWeakTopic && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">
+              <Sparkles className="w-3 h-3" />
+              {isRTL ? 'موضوع يحتاج مراجعة' : 'Review focus'}
             </span>
-          </div>
+          )}
+          <span className="ms-auto text-xs font-medium text-gray-400 uppercase tracking-wide">
+            {question.difficulty === 'easy' ? (isRTL ? 'سهل' : 'Easy') :
+              question.difficulty === 'medium' ? (isRTL ? 'متوسط' : 'Medium') :
+                (isRTL ? 'صعب' : 'Hard')}
+          </span>
         </div>
 
-        {/* Options */}
-        <div className="space-y-3">
+        {/* ── Question text ────────────────────────────────────────── */}
+        <div className="px-5 pb-5">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-relaxed">
+            {question.question}
+          </h2>
+        </div>
+
+        {/* ── Options ─────────────────────────────────────────────── */}
+        <div className="px-5 pb-5 space-y-3">
           {question.options.map((option, index) => {
             const isSelected = selectedAnswer === index;
-            const isCorrectAnswer = index === question.correctAnswer;
-            const showCorrect = showResult && isCorrectAnswer;
-            const showIncorrect = showResult && isSelected && !isCorrectAnswer;
+            const isCorrectOpt = index === question.correctAnswer;
+            const showCorrect = answered && isCorrectOpt;
+            const showWrong = answered && isSelected && !isCorrectOpt;
+            const showNeutral = answered && !isCorrectOpt && !isSelected;
+            const labels = isRTL ? OPTION_LABELS : OPTION_LABELS_EN;
 
             return (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
+                transition={{ duration: 0.3, delay: index * 0.08 }}
               >
                 <button
                   onClick={() => handleSelectAnswer(index)}
                   disabled={isAnswered}
-                  className={`w-full p-4 rounded-xl font-medium text-base md:text-lg transition-all duration-200 flex items-center gap-3 min-h-[56px] ${isRTL ? 'flex-row-reverse text-right' : 'text-left'
-                    } ${isSelected
-                      ? showCorrect
-                        ? 'bg-green-100 text-green-900 border-2 border-green-500'
-                        : showIncorrect
-                          ? 'bg-red-100 text-red-900 border-2 border-red-500'
-                          : 'bg-gradient-to-r from-teal-100 to-purple-100 text-gray-900 border-2 border-teal-400'
-                      : isAnswered && showCorrect
-                        ? 'bg-green-50 text-green-900 border-2 border-green-300'
-                        : 'bg-gray-50 text-gray-700 border-2 border-gray-200 hover:border-teal-300 hover:bg-teal-50'
-                    } ${isAnswered ? 'cursor-default' : 'cursor-pointer'}`}
+                  className={`w-full rounded-xl font-medium text-base transition-all duration-200
+                    flex items-start gap-3 min-h-[56px] p-4
+                    ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}
+                    ${showCorrect ? 'bg-green-50 border-2 border-green-500 text-green-900' :
+                      showWrong ? 'bg-red-50 border-2 border-red-500 text-red-900' :
+                        showNeutral ? 'bg-gray-50 border-2 border-gray-200 text-gray-400' :
+                          isSelected ? 'bg-teal-50 border-2 border-teal-400 text-gray-900' :
+                            'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50'}
+                    ${isAnswered ? 'cursor-default' : 'cursor-pointer'}`}
                 >
-                  <div className="flex-shrink-0">
-                    {showCorrect && <CheckCircle2 className="w-6 h-6 text-green-600" />}
-                    {showIncorrect && <XCircle className="w-6 h-6 text-red-600" />}
-                    {!showCorrect && !showIncorrect && (
-                      <div
-                        className={`w-6 h-6 rounded-full border-2 transition-all ${isSelected
-                          ? 'border-teal-500 bg-teal-500'
-                          : 'border-gray-300 bg-white'
-                          }`}
-                      />
-                    )}
+                  {/* Label circle */}
+                  <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold mt-0.5
+                    ${showCorrect ? 'bg-green-500 text-white' :
+                      showWrong ? 'bg-red-500 text-white' :
+                        showNeutral ? 'bg-gray-200 text-gray-400' :
+                          isSelected ? 'bg-teal-500 text-white' :
+                            'bg-gray-200 text-gray-600'}`}>
+                    {showCorrect ? <CheckCircle2 className="w-4 h-4" /> :
+                      showWrong ? <XCircle className="w-4 h-4" /> :
+                        labels[index]}
                   </div>
-                  <span className="flex-1">{option}</span>
+
+                  {/* Option text */}
+                  <span className="flex-1 leading-snug">{option}</span>
+
+                  {/* Inline mini-hint after answering */}
+                  {answered && showCorrect && (
+                    <span className={`flex-shrink-0 text-xs font-semibold text-green-600 ${isRTL ? 'me-auto' : 'ms-auto'}`}>
+                      ✓ {isRTL ? 'الإجابة الصحيحة' : 'Correct'}
+                    </span>
+                  )}
+                  {answered && showWrong && (
+                    <span className={`flex-shrink-0 text-xs font-semibold text-red-500 ${isRTL ? 'me-auto' : 'ms-auto'}`}>
+                      ✗ {isRTL ? 'اخترت هذا' : 'Your pick'}
+                    </span>
+                  )}
                 </button>
+
+                {/* Per-option explanation (shown after answering) */}
+                {answered && (showCorrect || showWrong) && question.optionExplanations?.[index] && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    transition={{ duration: 0.3, delay: 0.15 }}
+                    className={`mt-1 mx-1 px-4 py-2 rounded-lg text-sm leading-relaxed
+                      ${showCorrect ? 'bg-green-50 text-green-800 border border-green-200' :
+                        'bg-red-50 text-red-800 border border-red-200'}`}
+                  >
+                    {question.optionExplanations[index]}
+                  </motion.div>
+                )}
               </motion.div>
             );
           })}
         </div>
 
-        {/* Correct answer burst overlay */}
+        {/* ── XP burst ─────────────────────────────────────────────── */}
         <AnimatePresence>
           {showBurst && (
             <motion.div
               key="burst"
-              initial={{ opacity: 0, scale: 0.5, y: 0 }}
-              animate={{ opacity: 1, scale: 1.2, y: -20 }}
-              exit={{ opacity: 0, scale: 0.8, y: -40 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-              className="absolute left-1/2 -translate-x-1/2 top-1/2 pointer-events-none z-20 text-3xl select-none"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1.3 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.5 }}
+              className="text-center text-3xl pointer-events-none select-none py-1"
             >
-              ✨ +1
+              ✨ +XP
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Feedback + Smart Tutor */}
-        {showResult && selectedAnswer !== undefined && (() => {
-          const isCorrect = selectedAnswer === question.correctAnswer;
-          return (
+        {/* ── Feedback section (stays visible until Next is pressed) ── */}
+        <AnimatePresence>
+          {answered && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              key="feedback"
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.4 }}
-              className="mt-6 space-y-3"
+              transition={{ duration: 0.35, delay: 0.1 }}
+              className="border-t border-gray-100"
             >
               {/* Result banner */}
-              <div className={`p-4 rounded-xl text-center font-bold text-lg ${isCorrect
-                ? 'bg-green-100 text-green-900'
-                : 'bg-red-100 text-red-900'
-                }`}>
-                {isCorrect
-                  ? (isRTL ? '🎉 ممتاز! إجابة صحيحة!' : '🎉 Excellent! That\'s correct!')
-                  : (isRTL ? '💪 لا بأس! تعلّمي من الخطأ:' : '💪 Not quite! Here\'s why:')}
-              </div>
-              {/* Accuracy badge for weak topics */}
-              {isWeakTopic && accuracyOnTopic !== null && accuracyOnTopic !== undefined && (
-                <div
-                  className="text-xs text-center text-amber-700 bg-amber-50 rounded-lg py-1.5 px-3 arabic-text"
-                  dir={isRTL ? 'rtl' : 'ltr'}
-                >
-                  {isRTL
-                    ? `📊 دقتكِ في هذا الموضوع: ${accuracyOnTopic}% — ${isCorrect ? 'ممتاز، أنتِ تتحسنين! 🌱' : 'لا تيأسي، التكرار يُرسّخ! 💪'}`
-                    : `📊 Your accuracy on this topic: ${accuracyOnTopic}% — ${isCorrect ? "Great, you're improving! 🌱" : 'Keep going, practice makes perfect! 💪'}`}
+              <div className={`px-5 py-4 flex items-center gap-3
+                ${isRTL ? 'flex-row-reverse' : ''}
+                ${isCorrectAnswer ? 'bg-green-50' : 'bg-red-50'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-xl
+                  ${isCorrectAnswer ? 'bg-green-100' : 'bg-red-100'}`}>
+                  {isCorrectAnswer ? '🎉' : '💪'}
                 </div>
-              )}
-
-              {/* Dad Tutor Panel */}
-              <div className={`rounded-2xl border-2 overflow-hidden shadow-sm ${isCorrect ? 'border-rose-200' : 'border-violet-200'}`}>
-                {/* Panel header */}
-                <button
-                  onClick={() => setTutorOpen(o => !o)}
-                  className={`w-full flex items-center gap-2 px-4 py-3 font-semibold text-sm transition-colors ${isCorrect
-                    ? 'bg-gradient-to-r from-rose-50 to-pink-50 text-rose-800 hover:from-rose-100 hover:to-pink-100'
-                    : 'bg-gradient-to-r from-violet-50 to-purple-50 text-violet-900 hover:from-violet-100 hover:to-purple-100'
-                    } ${isRTL ? 'flex-row-reverse' : ''}`}
-                >
-                  <Heart className="w-4 h-4 flex-shrink-0 fill-current" />
-                  <span className="flex-1 text-start">
-                    {loading
-                      ? (isRTL ? '💭 بابا يفكّر في الشرح...' : '💭 Dad is preparing your explanation...')
-                      : isRTL
-                        ? (isCorrect ? '💙 كلام بابا — أنا فخور فيكِ!' : '💜 بابا يشرح لكِ...')
-                        : (isCorrect ? "💙 Dad says — I'm so proud of you!" : '💜 Dad explains...')}
-                  </span>
-                  {loading
-                    ? <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
-                    : tutorOpen
-                      ? <ChevronUp className="w-4 h-4 flex-shrink-0" />
-                      : <ChevronDown className="w-4 h-4 flex-shrink-0" />}
-                </button>
-
-                {/* Explanation body */}
-                <AnimatePresence initial={false}>
-                  {tutorOpen && (
-                    <motion.div
-                      key="tutor-body"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="overflow-hidden"
-                    >
-                      <div
-                        dir={isRTL ? 'rtl' : 'ltr'}
-                        className={`px-5 py-4 text-sm leading-loose bg-white text-gray-800 ${isRTL ? 'arabic-text text-right' : 'text-left'}`}
-                      >
-                        {loading ? (
-                          <div className={`flex items-center gap-2 text-gray-400 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>{isRTL ? 'بابا يكتب لكِ...' : 'Dad is writing for you...'}</span>
-                          </div>
-                        ) : (
-                          <p className="whitespace-pre-line">
-                            {explanation || (isRTL ? 'جاري تحضير الشرح...' : 'Preparing explanation...')}
-                          </p>
-                        )}
-                      </div>
-                      <div className={`px-5 pb-3 flex items-center gap-1 text-xs text-gray-400 ${isRTL ? 'flex-row-reverse justify-end' : 'justify-start'}`}>
-                        <Heart className="w-3 h-3 fill-rose-300 text-rose-300" />
-                        <span>{isRTL ? 'بابا دايمًا معكِ يا لينيدا' : 'Dad is always with you, Linda'}</span>
-                      </div>
-                    </motion.div>
+                <div className={isRTL ? 'text-right' : 'text-left'}>
+                  <p className={`font-bold text-base ${isCorrectAnswer ? 'text-green-800' : 'text-red-800'}`}>
+                    {isCorrectAnswer
+                      ? (isRTL ? `أحسنت يا ${childName}! إجابة صحيحة 💚` : `Well done ${childName}! Correct! �`)
+                      : (isRTL ? `لا بأس يا ${childName}، الخطأ درس 💜` : `No worries ${childName}, mistakes teach us! �`)}
+                  </p>
+                  {!isCorrectAnswer && (
+                    <p className={`text-sm mt-0.5 ${isRTL ? 'text-red-700' : 'text-red-700'}`}>
+                      {isRTL
+                        ? `الإجابة الصحيحة: ${question.options[question.correctAnswer]}`
+                        : `Correct answer: ${question.options[question.correctAnswer]}`}
+                    </p>
                   )}
-                </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Dad Tutor — always open, never collapsible */}
+              <div className={`px-5 py-4 ${isCorrectAnswer ? 'bg-rose-50/60' : 'bg-violet-50/60'}`}>
+                <div className={`flex items-center gap-2 mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Heart className={`w-4 h-4 fill-current flex-shrink-0 ${isCorrectAnswer ? 'text-rose-500' : 'text-violet-500'}`} />
+                  <span className={`font-semibold text-sm ${isCorrectAnswer ? 'text-rose-800' : 'text-violet-900'}`}>
+                    {loading
+                      ? (isRTL ? '💭 بابا يفكّر في الشرح...' : '💭 Dad is preparing...')
+                      : isRTL
+                        ? (isCorrectAnswer ? `💙 شرح بابا — لماذا هذه الإجابة صحيحة؟` : `💜 بابا يشرح لك يا ${childName}`)
+                        : (isCorrectAnswer ? `💙 Dad explains — why is this correct?` : `💜 Dad explains for you, ${childName}`)}
+                  </span>
+                  {loading && <Loader2 className="w-4 h-4 animate-spin text-gray-400 flex-shrink-0" />}
+                </div>
+
+                <div
+                  dir={isRTL ? 'rtl' : 'ltr'}
+                  className={`text-sm leading-loose text-gray-800 min-h-[60px] ${isRTL ? 'arabic-text text-right' : 'text-left'}`}
+                >
+                  {loading ? (
+                    <div className={`flex items-center gap-2 text-gray-400 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{isRTL ? 'بابا يكتب لك...' : 'Dad is writing for you...'}</span>
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-line">
+                      {explanation || question.explanation || (isRTL ? 'اضغط زر التالي للمتابعة...' : 'Press Next to continue...')}
+                    </p>
+                  )}
+                </div>
+
+                {/* Accuracy hint */}
+                {isWeakTopic && accuracyOnTopic !== null && accuracyOnTopic !== undefined && (
+                  <div className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-lg py-1.5 px-3" dir={isRTL ? 'rtl' : 'ltr'}>
+                    {isRTL
+                      ? `📊 دقتك في هذا الموضوع: ${accuracyOnTopic}% — ${isCorrectAnswer ? 'أنت تتحسن! 🌱' : 'التكرار يُرسّخ 💪'}`
+                      : `📊 Accuracy on this topic: ${accuracyOnTopic}% — ${isCorrectAnswer ? "You're improving! 🌱" : 'Practice makes perfect! 💪'}`}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Next / Finish button ─────────────────────────────── */}
+              <div className="px-5 py-4 bg-white">
+                <button
+                  onClick={onNext}
+                  className={`w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all
+                    shadow-md active:scale-95
+                    ${isCorrectAnswer
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-green-200'
+                      : 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-violet-200'}`}
+                >
+                  {isRTL ? (
+                    <>
+                      <ArrowLeft className="w-5 h-5" />
+                      {isLast ? '🏆 عرض النتائج' : 'فهمت ✓ التالي'}
+                    </>
+                  ) : (
+                    <>
+                      {isLast ? '🏆 See Results' : 'Got it ✓ Next'}
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
               </div>
             </motion.div>
-          );
-        })()}
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );

@@ -9,6 +9,7 @@ export interface QuizQuestion {
   lesson?: string;   // specific lesson/unit
   difficulty: 'easy' | 'medium' | 'hard';
   explanation?: string; // Smart tutor explanation shown after answering
+  optionExplanations?: string[]; // Per-option micro-explanation shown inline after answering
 }
 
 export const quizQuestions: QuizQuestion[] = [

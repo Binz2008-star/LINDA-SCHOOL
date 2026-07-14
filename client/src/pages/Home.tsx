@@ -5,17 +5,16 @@ import QuizModeSelector from '@/components/QuizModeSelector';
 import ResultsScreen from '@/components/ResultsScreen';
 import ScoreHistory from '@/components/ScoreHistory';
 import SubjectSelector from '@/components/SubjectSelector';
-import { Button } from '@/components/ui/button';
 import { useScoreHistory } from '@/hooks/useScoreHistory';
 import { useWeakTopics } from '@/hooks/useWeakTopics';
 import { useXPSystem } from '@/hooks/useXPSystem';
 import { ChildId, CHILDREN, getChild } from '@/lib/children';
 import { getDailyQuestions, getQuestionsBySubject, QuizQuestion } from '@/lib/quizData';
 import { motion } from 'framer-motion';
-import { BarChart2, ChevronRight, Home as HomeIcon, LogOut, MessageCircle, Star, Zap } from 'lucide-react';
+import { BarChart2, Home as HomeIcon, LogOut, MessageCircle, Star, Zap } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-type QuizState = 'mode-selection' | 'subject-selection' | 'quiz' | 'results' | 'stats';
+type QuizState = 'mode-selection' | 'subject-selection' | 'quiz' | 'results' | 'stats' | 'lessons';
 type QuizMode = 'mixed' | 'arabic' | 'english' | 'subject' | 'daily';
 
 const WHATSAPP_NUMBER = '0528688396';
@@ -88,31 +87,27 @@ export default function Home() {
     if (currentQuestion) {
       recordAnswer(currentQuestion.subject, currentQuestion.lesson ?? currentQuestion.subject, isCorrect);
     }
+    // Navigation is handled by onNext inside QuizCard — no auto-advance here
+  };
 
-    setTimeout(() => {
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-        setShowResult(false);
-      } else {
-        const correct = newAnswers.filter(a => a.correct).length;
-        const total = newAnswers.length;
-        const score = Math.round((correct / total) * 100);
-        const modeLabel =
-          mode === 'subject' && selectedSubject ? selectedSubject :
-            mode === 'arabic' ? 'عربي' :
-              mode === 'english' ? 'English' :
-                mode === 'daily' ? 'يومي' : 'Mixed';
-        addScore({ score, correct, total, mode: modeLabel, subject: selectedSubject ?? undefined });
-        setLevelBeforeQuiz(prevLevel.current);
-        addQuizXP(score, streak);
-        addStreakAchievement(streak);
-        const baseXP = Math.round(score * 0.5);
-        const streakBonus = Math.min(streak * 5, 20);
-        const perfectBonus = score === 100 ? 25 : 0;
-        setLastXPEarned(baseXP + streakBonus + perfectBonus);
-        setState('results');
-      }
-    }, 2000);
+  const handleFinishQuiz = (finalAnswers: { index: number; correct: boolean }[]) => {
+    const correct = finalAnswers.filter(a => a.correct).length;
+    const total = finalAnswers.length;
+    const score = Math.round((correct / total) * 100);
+    const modeLabel =
+      mode === 'subject' && selectedSubject ? selectedSubject :
+        mode === 'arabic' ? 'عربي' :
+          mode === 'english' ? 'English' :
+            mode === 'daily' ? 'يومي' : 'Mixed';
+    addScore({ score, correct, total, mode: modeLabel, subject: selectedSubject ?? undefined });
+    setLevelBeforeQuiz(prevLevel.current);
+    addQuizXP(score, streak);
+    addStreakAchievement(streak);
+    const baseXP = Math.round(score * 0.5);
+    const streakBonus = Math.min(streak * 5, 20);
+    const perfectBonus = score === 100 ? 25 : 0;
+    setLastXPEarned(baseXP + streakBonus + perfectBonus);
+    setState('results');
   };
 
   const handleRestart = () => {
@@ -307,6 +302,25 @@ export default function Home() {
               </motion.div>
             </div>
 
+            {/* Lessons entry button */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mb-6 flex justify-center"
+            >
+              <button
+                onClick={() => setState('lessons')}
+                className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-white text-lg
+                  bg-gradient-to-r ${child.color} shadow-lg shadow-gray-200 active:scale-95 transition-all
+                  w-full max-w-md justify-center`}
+              >
+                <span className="text-2xl">📚</span>
+                <span className="arabic-text">دروس {child.nameAr} التعليمية</span>
+                <Star className="w-5 h-5 fill-white/80" />
+              </button>
+            </motion.div>
+
             {/* Mode Selector */}
             <QuizModeSelector onSelectMode={handleSelectMode} />
 
@@ -327,6 +341,21 @@ export default function Home() {
                 تفعيل تذكير WhatsApp اليومي
               </a>
             </motion.div>
+          </motion.div>
+        )}
+
+        {state === 'lessons' && (
+          <motion.div
+            key="lessons"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <LessonScreen
+              child={child}
+              onBack={() => setState('mode-selection')}
+            />
           </motion.div>
         )}
 
@@ -387,11 +416,20 @@ export default function Home() {
               correctCount={correctCount}
             />
 
-            {/* Quiz Card */}
+            {/* Quiz Card — next/finish buttons are inside the card */}
             <QuizCard
               question={currentQuestion}
               onAnswer={handleAnswer}
+              onNext={() => {
+                if (currentQuestionIndex < questions.length - 1) {
+                  setCurrentQuestionIndex(currentQuestionIndex + 1);
+                  setShowResult(false);
+                } else {
+                  setState('results');
+                }
+              }}
               isAnswered={showResult}
+              isLast={currentQuestionIndex === questions.length - 1}
               selectedAnswer={
                 showResult ? answers[currentQuestionIndex]?.index : undefined
               }
@@ -400,43 +438,6 @@ export default function Home() {
               accuracyOnTopic={accuracyFor(currentQuestion.subject, currentQuestion.lesson ?? currentQuestion.subject)}
               childProfile={child}
             />
-
-            {/* Next Button */}
-            {showResult && currentQuestionIndex < questions.length - 1 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-center"
-              >
-                <Button
-                  onClick={() => {
-                    setCurrentQuestionIndex(currentQuestionIndex + 1);
-                    setShowResult(false);
-                  }}
-                  className="bg-gradient-to-r from-teal-500 to-purple-500 hover:from-teal-600 hover:to-purple-600 text-white font-semibold py-3 px-8 rounded-xl flex items-center gap-2"
-                >
-                  Next Question
-                  <ChevronRight className="w-5 h-5" />
-                </Button>
-              </motion.div>
-            )}
-
-            {/* Finish Button */}
-            {showResult && currentQuestionIndex === questions.length - 1 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-center"
-              >
-                <Button
-                  onClick={() => setState('results')}
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-3 px-8 rounded-xl flex items-center gap-2"
-                >
-                  See Results
-                  <ChevronRight className="w-5 h-5" />
-                </Button>
-              </motion.div>
-            )}
           </motion.div>
         )}
 

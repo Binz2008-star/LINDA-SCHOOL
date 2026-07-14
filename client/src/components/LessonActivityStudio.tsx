@@ -1,3 +1,4 @@
+import VoiceReflection from '@/components/VoiceReflection';
 import { useSpeech } from '@/hooks/useSpeech';
 import { LearnerProfile, SchoolLesson, SubjectId } from '@/lib/familyCurriculum';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -24,7 +25,7 @@ interface Props {
   onComplete: () => void;
 }
 
-type StudioStep = 'build' | 'write' | 'draw';
+type StudioStep = 'build' | 'write' | 'draw' | 'voice';
 
 interface BuildTask {
   title: string;
@@ -46,12 +47,14 @@ const STEP_LABELS: Record<StudioStep, string> = {
   build: 'رتّب وابنِ',
   write: 'اكتب وفكّر',
   draw: 'ارسم واشرح',
+  voice: 'اشرح بصوتك',
 };
 
 const STEP_EMOJI: Record<StudioStep, string> = {
   build: '🧩',
   write: '✍️',
   draw: '🎨',
+  voice: '🎙️',
 };
 
 const SUBJECT_DRAW_PROMPTS: Record<SubjectId, string> = {
@@ -541,7 +544,7 @@ function DrawingActivity({ learner, lesson, onDone }: { learner: LearnerProfile;
 }
 
 export default function LessonActivityStudio({ learner, lesson, onBack, onComplete }: Props) {
-  const steps: StudioStep[] = ['build', 'write', 'draw'];
+  const steps: StudioStep[] = ['build', 'write', 'draw', 'voice'];
   const [stepIndex, setStepIndex] = useState(0);
   const completed = stepIndex;
   const step = steps[stepIndex];
@@ -561,10 +564,10 @@ export default function LessonActivityStudio({ learner, lesson, onBack, onComple
           <div className="flex-1">
             <p className="text-white/80 arabic-text">مختبر الدرس: {lesson.title}</p>
             <h1 className="text-3xl md:text-4xl font-black arabic-text mt-1">نتعلّم باليد والعقل</h1>
-            <p className="text-white/85 mt-2 arabic-text">سنرتب فكرة، ثم نكتبها بطريقتنا، ثم نحوّلها إلى رسم أو مخطط.</p>
+            <p className="text-white/85 mt-2 arabic-text">سنرتب فكرة، ثم نكتبها، ونرسمها، ونشرحها بصوتنا قبل المراجعة القصيرة.</p>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2 mt-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-6">
           {steps.map((item, index) => (
             <div key={item} className={`rounded-xl px-3 py-2 text-center text-sm font-bold arabic-text ${index < stepIndex ? 'bg-green-400/30' : index === stepIndex ? 'bg-white text-gray-900' : 'bg-white/15 text-white/70'}`}>
               <span className="ml-1">{index < stepIndex ? '✓' : STEP_EMOJI[item]}</span>{STEP_LABELS[item]}
@@ -580,6 +583,7 @@ export default function LessonActivityStudio({ learner, lesson, onBack, onComple
           {step === 'build' && <BuildActivity learner={learner} lesson={lesson} onDone={finishStep} />}
           {step === 'write' && <WritingActivity learner={learner} lesson={lesson} onDone={finishStep} />}
           {step === 'draw' && <DrawingActivity learner={learner} lesson={lesson} onDone={finishStep} />}
+          {step === 'voice' && <VoiceReflection learner={learner} lesson={lesson} onDone={finishStep} />}
         </motion.div>
       </AnimatePresence>
     </div>

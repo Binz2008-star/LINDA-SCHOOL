@@ -17,16 +17,22 @@ function getPrompt(learner: LearnerProfile, lesson: SchoolLesson): string {
   return `لخّصي الفكرة بصوتك، ثم اذكري سبباً أو نتيجة أو سؤالاً ما زلتِ تفكرين فيه.`;
 }
 
+function supportsRecording(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  return Boolean(
+    navigator.mediaDevices
+    && typeof navigator.mediaDevices.getUserMedia === 'function'
+    && typeof window.MediaRecorder !== 'undefined',
+  );
+}
+
 export default function VoiceReflection({ learner, lesson, onDone }: Props) {
   const prompt = useMemo(() => getPrompt(learner, lesson), [learner, lesson]);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
-  const [state, setState] = useState<RecorderState>(() => {
-    if (typeof window === 'undefined') return 'unsupported';
-    return navigator.mediaDevices?.getUserMedia && 'MediaRecorder' in window ? 'idle' : 'unsupported';
-  });
+  const [state, setState] = useState<RecorderState>(() => supportsRecording() ? 'idle' : 'unsupported');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
 
@@ -56,6 +62,11 @@ export default function VoiceReflection({ learner, lesson, onDone }: Props) {
   }, [audioUrl]);
 
   const startRecording = async () => {
+    if (!supportsRecording()) {
+      setState('unsupported');
+      return;
+    }
+
     setState('requesting');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -84,7 +95,7 @@ export default function VoiceReflection({ learner, lesson, onDone }: Props) {
       timerRef.current = window.setInterval(() => {
         setSeconds(current => {
           if (current >= 44) {
-            recorder.stop();
+            if (recorder.state === 'recording') recorder.stop();
             return 45;
           }
           return current + 1;

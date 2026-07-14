@@ -4,15 +4,17 @@ import ProgressBar from '@/components/ProgressBar';
 import QuizCard from '@/components/QuizCard';
 import QuizModeSelector from '@/components/QuizModeSelector';
 import ResultsScreen from '@/components/ResultsScreen';
+import RewardsScreen from '@/components/RewardsScreen';
 import ScoreHistory from '@/components/ScoreHistory';
 import SubjectSelector from '@/components/SubjectSelector';
+import { useRewards } from '@/hooks/useRewards';
 import { useScoreHistory } from '@/hooks/useScoreHistory';
 import { useWeakTopics } from '@/hooks/useWeakTopics';
 import { useXPSystem } from '@/hooks/useXPSystem';
 import { ChildId, ChildProfile, CHILDREN, getChild } from '@/lib/children';
 import { getDailyQuestions, getQuestionsBySubject, QuizQuestion } from '@/lib/quizData';
 import { motion } from 'framer-motion';
-import { BarChart2, Home as HomeIcon, LogOut, MessageCircle, Star, Zap } from 'lucide-react';
+import { BarChart2, Gift, Home as HomeIcon, LogOut, MessageCircle, Star, Zap } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 function ChildAvatar({ child, className }: { child: ChildProfile; className: string }) {
@@ -34,7 +36,7 @@ function ChildAvatar({ child, className }: { child: ChildProfile; className: str
   );
 }
 
-type QuizState = 'mode-selection' | 'subject-selection' | 'quiz' | 'results' | 'stats' | 'lessons';
+type QuizState = 'mode-selection' | 'subject-selection' | 'quiz' | 'results' | 'stats' | 'lessons' | 'rewards';
 type QuizMode = 'mixed' | 'arabic' | 'english' | 'subject' | 'daily';
 
 const WHATSAPP_NUMBER = '0528688396';
@@ -53,6 +55,7 @@ export default function Home() {
 
   const child = activeChild ? getChild(activeChild) : CHILDREN['linda'];
   const isMale = activeChild ? ['adam', 'noah'].includes(activeChild) : false;
+  const { availableCoins, addXP: addRewardXP } = useRewards(child.storageKey);
 
   const { history, addScore, clearHistory, bestScore, averageScore, totalQuizzes, streak } = useScoreHistory();
   const {
@@ -126,7 +129,9 @@ export default function Home() {
     const baseXP = Math.round(score * 0.5);
     const streakBonus = Math.min(streak * 5, 20);
     const perfectBonus = score === 100 ? 25 : 0;
-    setLastXPEarned(baseXP + streakBonus + perfectBonus);
+    const totalXP = baseXP + streakBonus + perfectBonus;
+    setLastXPEarned(totalXP);
+    addRewardXP(totalXP);
     setState('results');
   };
 
@@ -208,6 +213,23 @@ export default function Home() {
               >
                 <HomeIcon className="w-4 h-4" />
                 <span className="hidden sm:inline">الرئيسية</span>
+              </motion.button>
+            )}
+            {/* Rewards button */}
+            {state === 'mode-selection' && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                onClick={() => setState('rewards')}
+                className={`relative flex items-center gap-1 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors ${child.colorText} text-sm min-h-[44px]`}
+                title="مكافآتي"
+              >
+                <Gift className="w-4 h-4" />
+                {availableCoins > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-white text-[10px] font-bold flex items-center justify-center">
+                    {availableCoins > 9 ? '9+' : availableCoins}
+                  </span>
+                )}
               </motion.button>
             )}
             {/* Switch child button */}
@@ -471,6 +493,13 @@ export default function Home() {
               childProfile={child}
             />
           </motion.div>
+        )}
+
+        {state === 'rewards' && (
+          <RewardsScreen
+            child={child}
+            onBack={() => setState('mode-selection')}
+          />
         )}
       </main>
 

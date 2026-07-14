@@ -1,5 +1,8 @@
+import PinEntry from '@/components/PinEntry';
+import { useRewards } from '@/hooks/useRewards';
 import { ChildId, ChildProfile, CHILDREN, CHILDREN_ORDER } from '@/lib/children';
 import { motion } from 'framer-motion';
+import { Lock } from 'lucide-react';
 import { useState } from 'react';
 
 interface ChildSelectorProps {
@@ -29,7 +32,15 @@ function ChildAvatar({ child, size = 24 }: { child: ChildProfile; size?: number 
   );
 }
 
-function ChildCard({ child, index, onSelect }: { child: ChildProfile; index: number; onSelect: (id: ChildId) => void }) {
+function CoinsPreview({ storageKey, colorText }: { storageKey: string; colorText: string }) {
+  const { availableCoins } = useRewards(storageKey);
+  if (availableCoins === 0) return null;
+  return (
+    <span className={`text-xs font-bold ${colorText}`}>🪙 {availableCoins}</span>
+  );
+}
+
+function ChildCard({ child, index, onClick }: { child: ChildProfile; index: number; onClick: () => void }) {
   return (
     <motion.button
       initial={{ opacity: 0, y: 30 }}
@@ -37,13 +48,22 @@ function ChildCard({ child, index, onSelect }: { child: ChildProfile; index: num
       transition={{ duration: 0.4, delay: index * 0.1 }}
       whileHover={{ scale: 1.04, y: -4 }}
       whileTap={{ scale: 0.97 }}
-      onClick={() => onSelect(child.id)}
+      onClick={onClick}
       className={`relative w-full rounded-3xl p-5 text-center shadow-lg border-2 ${child.colorBorder} ${child.colorLight} transition-all duration-200 cursor-pointer`}
     >
+      {/* Lock badge */}
+      <div className={`absolute top-2 left-2 p-1 rounded-full bg-white/80 shadow-sm ${child.colorText}`}>
+        <Lock className="w-3 h-3" />
+      </div>
+
+      {/* Coins badge */}
+      <div className="absolute top-2 right-2">
+        <CoinsPreview storageKey={child.storageKey} colorText={child.colorText} />
+      </div>
+
       {/* Photo or emoji avatar */}
       <div className="relative mx-auto w-24 h-24 mb-3">
         <ChildAvatar child={child} size={24} />
-        {/* Age badge */}
         <span className={`absolute -bottom-1 -right-1 text-xs font-bold px-2 py-0.5 rounded-full bg-white shadow ${child.colorText} border ${child.colorBorder}`}>
           {child.age} سنة
         </span>
@@ -72,6 +92,18 @@ function ChildCard({ child, index, onSelect }: { child: ChildProfile; index: num
 }
 
 export default function ChildSelector({ onSelect }: ChildSelectorProps) {
+  const [pinChild, setPinChild] = useState<ChildId | null>(null);
+
+  if (pinChild) {
+    return (
+      <PinEntry
+        child={CHILDREN[pinChild]}
+        onSuccess={() => { onSelect(pinChild); setPinChild(null); }}
+        onBack={() => setPinChild(null)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex flex-col items-center justify-center px-4 py-10">
       {/* Header */}
@@ -86,7 +118,7 @@ export default function ChildSelector({ onSelect }: ChildSelectorProps) {
           مرحباً بكم في مدرستنا!
         </h1>
         <p className="text-gray-500 arabic-text text-base">
-          اختر اسمك لتبدأ رحلة التعلم 📚
+          اختر اسمك وأدخل رقمك السري �
         </p>
       </motion.div>
 
@@ -97,7 +129,7 @@ export default function ChildSelector({ onSelect }: ChildSelectorProps) {
             key={id}
             child={CHILDREN[id]}
             index={index}
-            onSelect={onSelect}
+            onClick={() => setPinChild(id)}
           />
         ))}
       </div>
@@ -109,7 +141,7 @@ export default function ChildSelector({ onSelect }: ChildSelectorProps) {
         className="mt-8 text-xs text-gray-400 arabic-text text-center"
         dir="rtl"
       >
-        بابا فخور بكم جميعاً 💙
+        🔒 كل طفل له رقم سري خاص به — بابا فخور بكم 💙
       </motion.p>
     </div>
   );

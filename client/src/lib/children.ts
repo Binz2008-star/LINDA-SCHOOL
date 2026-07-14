@@ -27,6 +27,10 @@ export interface ChildProfile {
   dadToneEn: string;
   // localStorage namespace
   storageKey: string;
+  // 4-digit PIN to protect this child's account
+  pin: string;
+  // Preferred reward type
+  rewardType: 'robux' | 'vbucks' | 'noon' | 'coins';
 }
 
 export const CHILDREN: Record<ChildId, ChildProfile> = {
@@ -50,6 +54,8 @@ export const CHILDREN: Record<ChildId, ChildProfile> = {
     dadToneAr: 'يا لينيدا حبيبتي',
     dadToneEn: 'my dear Linda',
     storageKey: 'linda',
+    pin: '1234',
+    rewardType: 'noon',
   },
   adam: {
     id: 'adam',
@@ -71,6 +77,8 @@ export const CHILDREN: Record<ChildId, ChildProfile> = {
     dadToneAr: 'يا آدم يا مخترعي',
     dadToneEn: 'my little inventor Adam',
     storageKey: 'adam',
+    pin: '2345',
+    rewardType: 'robux',
   },
   judy: {
     id: 'judy',
@@ -92,6 +100,8 @@ export const CHILDREN: Record<ChildId, ChildProfile> = {
     dadToneAr: 'يا جودي بطلتي',
     dadToneEn: 'my little champion Judy',
     storageKey: 'judy',
+    pin: '3456',
+    rewardType: 'vbucks',
   },
   noah: {
     id: 'noah',
@@ -113,6 +123,8 @@ export const CHILDREN: Record<ChildId, ChildProfile> = {
     dadToneAr: 'يا نوح حبيب بابا',
     dadToneEn: 'my little Noah',
     storageKey: 'noah',
+    pin: '4567',
+    rewardType: 'robux',
   },
 };
 

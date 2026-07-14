@@ -47,6 +47,12 @@ replaceOnce(
 );
 
 replaceOnce(
+  'grid grid-cols-3 gap-2 mt-6',
+  'grid grid-cols-2 md:grid-cols-4 gap-2 mt-6',
+  'four-step progress grid',
+);
+
+replaceOnce(
   "          {step === 'draw' && <DrawingActivity learner={learner} lesson={lesson} onDone={finishStep} />}\n",
   "          {step === 'draw' && <DrawingActivity learner={learner} lesson={lesson} onDone={finishStep} />}\n          {step === 'voice' && <VoiceReflection learner={learner} lesson={lesson} onDone={finishStep} />}\n",
   'voice step render',

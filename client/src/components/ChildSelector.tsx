@@ -1,8 +1,32 @@
-import { ChildId, ChildProfile, CHILDREN_ORDER, CHILDREN } from '@/lib/children';
+import { ChildId, ChildProfile, CHILDREN, CHILDREN_ORDER } from '@/lib/children';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 interface ChildSelectorProps {
   onSelect: (id: ChildId) => void;
+}
+
+function ChildAvatar({ child, size = 24 }: { child: ChildProfile; size?: number }) {
+  const [imgError, setImgError] = useState(false);
+  const sizeClass = `w-${size} h-${size}`;
+  const textSize = size >= 24 ? 'text-5xl' : 'text-2xl';
+
+  if (!imgError) {
+    return (
+      <img
+        src={child.photo}
+        alt={child.nameAr}
+        onError={() => setImgError(true)}
+        className={`${sizeClass} rounded-full object-cover shadow-md ring-4 ${child.colorRing}`}
+      />
+    );
+  }
+  return (
+    <div className={`${sizeClass} rounded-full flex items-center justify-center ${textSize}
+      bg-gradient-to-br ${child.color} shadow-md ring-4 ${child.colorRing}`}>
+      {child.emoji}
+    </div>
+  );
 }
 
 function ChildCard({ child, index, onSelect }: { child: ChildProfile; index: number; onSelect: (id: ChildId) => void }) {
@@ -18,23 +42,7 @@ function ChildCard({ child, index, onSelect }: { child: ChildProfile; index: num
     >
       {/* Photo or emoji avatar */}
       <div className="relative mx-auto w-24 h-24 mb-3">
-        <img
-          src={child.photo}
-          alt={child.nameAr}
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-            const next = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
-            if (next) next.style.display = 'flex';
-          }}
-          className={`w-24 h-24 rounded-full object-cover shadow-md ring-4 ${child.colorRing}`}
-        />
-        {/* Fallback emoji avatar shown if image fails */}
-        <div
-          style={{ display: 'none' }}
-          className={`w-24 h-24 rounded-full items-center justify-center text-5xl bg-gradient-to-br ${child.color} shadow-md ring-4 ${child.colorRing}`}
-        >
-          {child.emoji}
-        </div>
+        <ChildAvatar child={child} size={24} />
         {/* Age badge */}
         <span className={`absolute -bottom-1 -right-1 text-xs font-bold px-2 py-0.5 rounded-full bg-white shadow ${child.colorText} border ${child.colorBorder}`}>
           {child.age} سنة

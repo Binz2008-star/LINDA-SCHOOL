@@ -1,4 +1,5 @@
 import ChildSelector from '@/components/ChildSelector';
+import LessonScreen from '@/components/LessonScreen';
 import ProgressBar from '@/components/ProgressBar';
 import QuizCard from '@/components/QuizCard';
 import QuizModeSelector from '@/components/QuizModeSelector';
@@ -8,11 +9,30 @@ import SubjectSelector from '@/components/SubjectSelector';
 import { useScoreHistory } from '@/hooks/useScoreHistory';
 import { useWeakTopics } from '@/hooks/useWeakTopics';
 import { useXPSystem } from '@/hooks/useXPSystem';
-import { ChildId, CHILDREN, getChild } from '@/lib/children';
+import { ChildId, ChildProfile, CHILDREN, getChild } from '@/lib/children';
 import { getDailyQuestions, getQuestionsBySubject, QuizQuestion } from '@/lib/quizData';
 import { motion } from 'framer-motion';
 import { BarChart2, Home as HomeIcon, LogOut, MessageCircle, Star, Zap } from 'lucide-react';
 import { useRef, useState } from 'react';
+
+function ChildAvatar({ child, className }: { child: ChildProfile; className: string }) {
+  const [err, setErr] = useState(false);
+  if (!err) {
+    return (
+      <img
+        src={child.photo}
+        alt={child.nameAr}
+        onError={() => setErr(true)}
+        className={className}
+      />
+    );
+  }
+  return (
+    <div className={`${className} flex items-center justify-center bg-gradient-to-br ${child.color} text-3xl`}>
+      {child.emoji}
+    </div>
+  );
+}
 
 type QuizState = 'mode-selection' | 'subject-selection' | 'quiz' | 'results' | 'stats' | 'lessons';
 type QuizMode = 'mixed' | 'arabic' | 'english' | 'subject' | 'daily';
@@ -148,12 +168,7 @@ export default function Home() {
           >
             {/* Child avatar */}
             <div className="relative flex-shrink-0">
-              <img
-                src={child.photo}
-                alt={child.nameAr}
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                className={`w-10 h-10 rounded-full object-cover ring-2 ${child.colorRing}`}
-              />
+              <ChildAvatar child={child} className={`w-10 h-10 rounded-full object-cover ring-2 ${child.colorRing}`} />
             </div>
             <div>
               <h1 className={`text-base font-bold ${child.colorText} leading-tight arabic-text`} dir="rtl">
@@ -235,15 +250,7 @@ export default function Home() {
                 {/* Child hero card */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6 max-w-lg mx-auto">
                   <div className="relative flex-shrink-0">
-                    <img
-                      src={child.photo}
-                      alt={child.nameAr}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const nx = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (nx) nx.style.display = 'flex'; }}
-                      className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover shadow-xl ring-4 ${child.colorRing}`}
-                    />
-                    <div style={{ display: 'none' }} className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full items-center justify-center text-6xl bg-gradient-to-br ${child.color} shadow-xl ring-4 ${child.colorRing}`}>
-                      {child.emoji}
-                    </div>
+                    <ChildAvatar child={child} className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover shadow-xl ring-4 ${child.colorRing}`} />
                     <span className="absolute -bottom-1 -right-1 text-2xl">{child.interestEmoji}</span>
                   </div>
                   <div className="text-center sm:text-right" dir="rtl">

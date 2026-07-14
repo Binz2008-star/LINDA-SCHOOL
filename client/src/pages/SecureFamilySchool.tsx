@@ -118,28 +118,28 @@ const REWARD_CATALOGUE: RewardItem[] = [
     id: 'family-choice',
     label: 'اختيار فيلم أو نشاط عائلي',
     description: 'مكافأة منزلية بسيطة يوافق عليها بابا.',
-    cost: 120,
+    cost: 200,
     emoji: '🎬',
   },
   {
     id: 'small-coupon',
     label: 'طلب كوبون Noon أو SHEIN بقيمة صغيرة',
     description: 'طلب بقيمة يحددها بابا حسب الميزانية.',
-    cost: 250,
+    cost: 450,
     emoji: '🛍️',
   },
   {
     id: 'game-card',
     label: 'طلب بطاقة Robux أو V-Bucks صغيرة',
     description: 'بابا يختار النوع والقيمة بعد الموافقة.',
-    cost: 400,
+    cost: 700,
     emoji: '🎮',
   },
   {
     id: 'special-coupon',
     label: 'طلب كوبون تسوق مميز',
     description: 'مكافأة أكبر بعد استمرار حقيقي في التعلم.',
-    cost: 650,
+    cost: 1100,
     emoji: '🎁',
   },
 ];
@@ -238,7 +238,7 @@ function calculateStats(progress: ProgressState) {
   const perfectLessons = results.filter(result => result.total > 0 && result.correct === result.total).length;
   const xp = completedLessons * 100 + correctAnswers * 25 + (progress.bonusXP ?? 0);
   const level = 1 + Math.floor(xp / 300);
-  const earnedCoins = completedLessons * 40 + perfectLessons * 10;
+  const earnedCoins = completedLessons * 20 + perfectLessons * 5;
   return { completedLessons, correctAnswers, perfectLessons, xp, level, earnedCoins };
 }
 

@@ -1,0 +1,27 @@
+{
+  "name": "مدرسة الأبطال",
+  "short_name": "مدرستي",
+  "description": "مدرسة ليندا وآدم وجودي ونوح — تعلّم ممتع بالعربية والإنجليزية.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#6366f1",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "apple touch icon"
+    }
+  ],
+  "categories": ["education", "kids"]
+}

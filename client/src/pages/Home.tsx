@@ -145,7 +145,7 @@ export default function Home() {
   const handleShare = () => {
     const correctCount = answers.filter(a => a.correct).length;
     const percentage = Math.round((correctCount / answers.length) * 100);
-    const text = `🎉 حصلت على ${percentage}% في تحدي Linda للاختبارات! هل تستطيع التفوق عليّ؟ 🚀`;
+    const text = `🎉 ${child.nameAr} حصل${isMale ? '' : 'ت'} على ${percentage}% في تحدي التعلم! هل تستطيع التفوق عليّ؟ 🚀`;
     const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
@@ -468,6 +468,7 @@ export default function Home() {
               newlyUnlocked={newlyUnlocked}
               onRestart={handleRestart}
               onShare={handleShare}
+              childProfile={child}
             />
           </motion.div>
         )}

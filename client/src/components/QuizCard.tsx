@@ -1,14 +1,18 @@
 import { useDeepSeekTutor } from '@/hooks/useDeepSeekTutor';
+import { useSpeech } from '@/hooks/useSpeech';
 import { ChildProfile } from '@/lib/children';
 import { QuizQuestion } from '@/lib/quizData';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Heart, Loader2, Sparkles, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import {
+  ArrowLeft, ArrowRight, BookOpen, CheckCircle2,
+  Heart, Loader2, Sparkles, Volume2, VolumeX, XCircle
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface QuizCardProps {
   question: QuizQuestion;
   onAnswer: (selectedIndex: number, isCorrect: boolean) => void;
-  onNext: () => void;           // caller controls navigation
+  onNext: () => void;
   isAnswered?: boolean;
   selectedAnswer?: number;
   showResult?: boolean;
@@ -20,6 +24,28 @@ interface QuizCardProps {
 
 const OPTION_LABELS = ['أ', 'ب', 'ج', 'د'];
 const OPTION_LABELS_EN = ['A', 'B', 'C', 'D'];
+
+// ── Per-child personalised messages ─────────────────────────────
+function correctMsg(nameAr: string, nameEn: string, isMale: boolean, isRTL: boolean) {
+  const pronoun = isMale ? '' : 'ي';
+  return isRTL
+    ? `أحسنت يا ${nameAr}! إجابة صحيحة 💚`
+    : `Well done ${nameEn}! Correct! 🎉`;
+}
+function wrongMsg(nameAr: string, nameEn: string, isMale: boolean, isRTL: boolean) {
+  return isRTL
+    ? `لا بأس يا ${nameAr}، الخطأ درس 💜`
+    : `No worries ${nameEn}, mistakes teach us! 💜`;
+}
+function tutorTitle(nameAr: string, nameEn: string, isCorrect: boolean, isRTL: boolean) {
+  return isRTL
+    ? isCorrect
+      ? `💙 شرح بابا — لماذا هذه الإجابة صحيحة؟`
+      : `💜 بابا يشرح لك يا ${nameAr}`
+    : isCorrect
+      ? `💙 Dad explains — why is this correct?`
+      : `💜 Dad explains for you, ${nameEn}`;
+}
 
 export default function QuizCard({
   question,
@@ -34,19 +60,49 @@ export default function QuizCard({
   childProfile,
 }: QuizCardProps) {
   const [showBurst, setShowBurst] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const { explanation, loading, explain, reset } = useDeepSeekTutor();
+  const { speak, stop, isSupported } = useSpeech();
 
   const isRTL = question.language === 'ar';
+  const lang = isRTL ? 'ar' : 'en';
   const isMale = childProfile ? ['adam', 'noah'].includes(childProfile.id) : false;
-  const childName = childProfile ? (isRTL ? childProfile.nameAr : childProfile.nameEn) : (isRTL ? 'لينيدا' : 'Linda');
+  const nameAr = childProfile?.nameAr ?? 'الطالب';
+  const nameEn = childProfile?.nameEn ?? 'Student';
 
   const isWeakTopic = weakTopics.some(t =>
     t.toLowerCase().includes((question.subject || '').toLowerCase()) ||
     t.toLowerCase().includes((question.lesson || '').toLowerCase())
   );
 
+  // Stop speech when question changes
+  useEffect(() => { stop(); setSpeaking(false); }, [question, stop]);
+
+  // ── Read question + options aloud ───────────────────────────
+  const handleReadQuestion = () => {
+    if (speaking) { stop(); setSpeaking(false); return; }
+    const optionLabels = isRTL ? OPTION_LABELS : OPTION_LABELS_EN;
+    const optionsText = question.options
+      .map((o, i) => `${optionLabels[i]}.. ${o}`)
+      .join('  ');
+    const full = `${question.question}. ${isRTL ? 'الخيارات:' : 'Options:'} ${optionsText}`;
+    setSpeaking(true);
+    speak(full, { lang });
+    // reset flag after estimated duration
+    const duration = full.length * (lang === 'ar' ? 120 : 80);
+    setTimeout(() => setSpeaking(false), Math.min(duration, 20000));
+  };
+
+  // ── Read explanation aloud ──────────────────────────────────
+  const handleReadExplanation = () => {
+    const text = explanation || question.explanation;
+    if (!text) return;
+    speak(text, { lang });
+  };
+
   const handleSelectAnswer = (index: number) => {
     if (isAnswered) return;
+    stop(); setSpeaking(false);
     const isCorrect = index === question.correctAnswer;
     reset();
     onAnswer(index, isCorrect);
@@ -55,10 +111,18 @@ export default function QuizCard({
       setShowBurst(true);
       setTimeout(() => setShowBurst(false), 1800);
     }
+    // Read result feedback aloud
+    if (isSupported) {
+      const msg = isCorrect
+        ? correctMsg(nameAr, nameEn, isMale, isRTL)
+        : wrongMsg(nameAr, nameEn, isMale, isRTL);
+      setTimeout(() => speak(msg, { lang }), 300);
+    }
   };
 
   const answered = showResult && selectedAnswer !== undefined;
   const isCorrectAnswer = answered && selectedAnswer === question.correctAnswer;
+  const labels = isRTL ? OPTION_LABELS : OPTION_LABELS_EN;
 
   return (
     <motion.div
@@ -70,7 +134,7 @@ export default function QuizCard({
     >
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
 
-        {/* ── Subject bar ─────────────────────────────────────────── */}
+        {/* ── Subject bar ─────────────────────────────────────── */}
         <div className="flex items-center gap-2 px-5 pt-5 pb-3 flex-wrap">
           <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-teal-100 to-purple-100 rounded-full text-sm font-semibold text-teal-700">
             <BookOpen className="w-3.5 h-3.5" />
@@ -94,14 +158,27 @@ export default function QuizCard({
           </span>
         </div>
 
-        {/* ── Question text ────────────────────────────────────────── */}
-        <div className="px-5 pb-5">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-relaxed">
+        {/* ── Question text + read-aloud button ───────────────── */}
+        <div className="px-5 pb-4">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-relaxed mb-3">
             {question.question}
           </h2>
+          {isSupported && (
+            <button
+              onClick={handleReadQuestion}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
+                ${speaking
+                  ? 'bg-teal-100 text-teal-700 border border-teal-300'
+                  : 'bg-gray-100 text-gray-500 hover:bg-teal-50 hover:text-teal-600 border border-gray-200'}`}
+            >
+              {speaking
+                ? <><VolumeX className="w-4 h-4" />{isRTL ? 'إيقاف' : 'Stop'}</>
+                : <><Volume2 className="w-4 h-4" />{isRTL ? 'اسمع السؤال 🔊' : 'Listen 🔊'}</>}
+            </button>
+          )}
         </div>
 
-        {/* ── Options ─────────────────────────────────────────────── */}
+        {/* ── Options ─────────────────────────────────────────── */}
         <div className="px-5 pb-5 space-y-3">
           {question.options.map((option, index) => {
             const isSelected = selectedAnswer === index;
@@ -109,7 +186,6 @@ export default function QuizCard({
             const showCorrect = answered && isCorrectOpt;
             const showWrong = answered && isSelected && !isCorrectOpt;
             const showNeutral = answered && !isCorrectOpt && !isSelected;
-            const labels = isRTL ? OPTION_LABELS : OPTION_LABELS_EN;
 
             return (
               <motion.div
@@ -125,49 +201,45 @@ export default function QuizCard({
                     flex items-start gap-3 min-h-[56px] p-4
                     ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}
                     ${showCorrect ? 'bg-green-50 border-2 border-green-500 text-green-900' :
-                      showWrong ? 'bg-red-50 border-2 border-red-500 text-red-900' :
-                        showNeutral ? 'bg-gray-50 border-2 border-gray-200 text-gray-400' :
-                          isSelected ? 'bg-teal-50 border-2 border-teal-400 text-gray-900' :
+                      showWrong ? 'bg-red-50   border-2 border-red-500   text-red-900' :
+                        showNeutral ? 'bg-gray-50  border-2 border-gray-200  text-gray-400' :
+                          isSelected ? 'bg-teal-50  border-2 border-teal-400  text-gray-900' :
                             'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50'}
                     ${isAnswered ? 'cursor-default' : 'cursor-pointer'}`}
                 >
                   {/* Label circle */}
                   <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold mt-0.5
                     ${showCorrect ? 'bg-green-500 text-white' :
-                      showWrong ? 'bg-red-500 text-white' :
-                        showNeutral ? 'bg-gray-200 text-gray-400' :
-                          isSelected ? 'bg-teal-500 text-white' :
-                            'bg-gray-200 text-gray-600'}`}>
+                      showWrong ? 'bg-red-500   text-white' :
+                        showNeutral ? 'bg-gray-200  text-gray-400' :
+                          isSelected ? 'bg-teal-500  text-white' :
+                            'bg-gray-200  text-gray-600'}`}>
                     {showCorrect ? <CheckCircle2 className="w-4 h-4" /> :
                       showWrong ? <XCircle className="w-4 h-4" /> :
                         labels[index]}
                   </div>
-
-                  {/* Option text */}
                   <span className="flex-1 leading-snug">{option}</span>
-
-                  {/* Inline mini-hint after answering */}
                   {answered && showCorrect && (
-                    <span className={`flex-shrink-0 text-xs font-semibold text-green-600 ${isRTL ? 'me-auto' : 'ms-auto'}`}>
-                      ✓ {isRTL ? 'الإجابة الصحيحة' : 'Correct'}
+                    <span className="flex-shrink-0 text-xs font-semibold text-green-600">
+                      ✓ {isRTL ? 'صحيح' : 'Correct'}
                     </span>
                   )}
                   {answered && showWrong && (
-                    <span className={`flex-shrink-0 text-xs font-semibold text-red-500 ${isRTL ? 'me-auto' : 'ms-auto'}`}>
-                      ✗ {isRTL ? 'اخترت هذا' : 'Your pick'}
+                    <span className="flex-shrink-0 text-xs font-semibold text-red-500">
+                      ✗ {isRTL ? 'خاطئ' : 'Wrong'}
                     </span>
                   )}
                 </button>
 
-                {/* Per-option explanation (shown after answering) */}
+                {/* Per-option explanation */}
                 {answered && (showCorrect || showWrong) && question.optionExplanations?.[index] && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     transition={{ duration: 0.3, delay: 0.15 }}
                     className={`mt-1 mx-1 px-4 py-2 rounded-lg text-sm leading-relaxed
-                      ${showCorrect ? 'bg-green-50 text-green-800 border border-green-200' :
-                        'bg-red-50 text-red-800 border border-red-200'}`}
+                      ${showCorrect ? 'bg-green-50 text-green-800 border border-green-200'
+                        : 'bg-red-50 text-red-800 border border-red-200'}`}
                   >
                     {question.optionExplanations[index]}
                   </motion.div>
@@ -177,7 +249,7 @@ export default function QuizCard({
           })}
         </div>
 
-        {/* ── XP burst ─────────────────────────────────────────────── */}
+        {/* ── XP burst ────────────────────────────────────────── */}
         <AnimatePresence>
           {showBurst && (
             <motion.div
@@ -193,7 +265,7 @@ export default function QuizCard({
           )}
         </AnimatePresence>
 
-        {/* ── Feedback section (stays visible until Next is pressed) ── */}
+        {/* ── Feedback (stays visible until Next pressed) ─────── */}
         <AnimatePresence>
           {answered && (
             <motion.div
@@ -211,14 +283,14 @@ export default function QuizCard({
                   ${isCorrectAnswer ? 'bg-green-100' : 'bg-red-100'}`}>
                   {isCorrectAnswer ? '🎉' : '💪'}
                 </div>
-                <div className={isRTL ? 'text-right' : 'text-left'}>
+                <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                   <p className={`font-bold text-base ${isCorrectAnswer ? 'text-green-800' : 'text-red-800'}`}>
                     {isCorrectAnswer
-                      ? (isRTL ? `أحسنت يا ${childName}! إجابة صحيحة 💚` : `Well done ${childName}! Correct! �`)
-                      : (isRTL ? `لا بأس يا ${childName}، الخطأ درس 💜` : `No worries ${childName}, mistakes teach us! �`)}
+                      ? correctMsg(nameAr, nameEn, isMale, isRTL)
+                      : wrongMsg(nameAr, nameEn, isMale, isRTL)}
                   </p>
                   {!isCorrectAnswer && (
-                    <p className={`text-sm mt-0.5 ${isRTL ? 'text-red-700' : 'text-red-700'}`}>
+                    <p className="text-sm mt-0.5 text-red-700">
                       {isRTL
                         ? `الإجابة الصحيحة: ${question.options[question.correctAnswer]}`
                         : `Correct answer: ${question.options[question.correctAnswer]}`}
@@ -227,18 +299,26 @@ export default function QuizCard({
                 </div>
               </div>
 
-              {/* Dad Tutor — always open, never collapsible */}
+              {/* Dad Tutor panel */}
               <div className={`px-5 py-4 ${isCorrectAnswer ? 'bg-rose-50/60' : 'bg-violet-50/60'}`}>
-                <div className={`flex items-center gap-2 mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex items-center gap-2 mb-3 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <Heart className={`w-4 h-4 fill-current flex-shrink-0 ${isCorrectAnswer ? 'text-rose-500' : 'text-violet-500'}`} />
-                  <span className={`font-semibold text-sm ${isCorrectAnswer ? 'text-rose-800' : 'text-violet-900'}`}>
+                  <span className={`font-semibold text-sm flex-1 ${isCorrectAnswer ? 'text-rose-800' : 'text-violet-900'}`}>
                     {loading
                       ? (isRTL ? '💭 بابا يفكّر في الشرح...' : '💭 Dad is preparing...')
-                      : isRTL
-                        ? (isCorrectAnswer ? `💙 شرح بابا — لماذا هذه الإجابة صحيحة؟` : `💜 بابا يشرح لك يا ${childName}`)
-                        : (isCorrectAnswer ? `💙 Dad explains — why is this correct?` : `💜 Dad explains for you, ${childName}`)}
+                      : tutorTitle(nameAr, nameEn, isCorrectAnswer, isRTL)}
                   </span>
                   {loading && <Loader2 className="w-4 h-4 animate-spin text-gray-400 flex-shrink-0" />}
+                  {/* Read explanation aloud */}
+                  {!loading && isSupported && (explanation || question.explanation) && (
+                    <button
+                      onClick={handleReadExplanation}
+                      title={isRTL ? 'اسمع الشرح' : 'Listen to explanation'}
+                      className="flex-shrink-0 p-1.5 rounded-full bg-white/70 hover:bg-white border border-gray-200 text-gray-500 hover:text-teal-600 transition-all"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
                 <div
@@ -252,12 +332,11 @@ export default function QuizCard({
                     </div>
                   ) : (
                     <p className="whitespace-pre-line">
-                      {explanation || question.explanation || (isRTL ? 'اضغط زر التالي للمتابعة...' : 'Press Next to continue...')}
+                      {explanation || question.explanation || (isRTL ? 'اضغط التالي للمتابعة...' : 'Press Next to continue...')}
                     </p>
                   )}
                 </div>
 
-                {/* Accuracy hint */}
                 {isWeakTopic && accuracyOnTopic !== null && accuracyOnTopic !== undefined && (
                   <div className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-lg py-1.5 px-3" dir={isRTL ? 'rtl' : 'ltr'}>
                     {isRTL
@@ -267,26 +346,20 @@ export default function QuizCard({
                 )}
               </div>
 
-              {/* ── Next / Finish button ─────────────────────────────── */}
+              {/* Next / Finish button */}
               <div className="px-5 py-4 bg-white">
                 <button
-                  onClick={onNext}
+                  onClick={() => { stop(); onNext(); }}
                   className={`w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all
                     shadow-md active:scale-95
                     ${isCorrectAnswer
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-green-200'
-                      : 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-violet-200'}`}
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-green-200'
+                      : 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-violet-200'}`}
                 >
                   {isRTL ? (
-                    <>
-                      <ArrowLeft className="w-5 h-5" />
-                      {isLast ? '🏆 عرض النتائج' : 'فهمت ✓ التالي'}
-                    </>
+                    <><ArrowLeft className="w-5 h-5" />{isLast ? '🏆 عرض النتائج' : 'فهمت ✓ التالي'}</>
                   ) : (
-                    <>
-                      {isLast ? '🏆 See Results' : 'Got it ✓ Next'}
-                      <ArrowRight className="w-5 h-5" />
-                    </>
+                    <>{isLast ? '🏆 See Results' : 'Got it ✓ Next'}<ArrowRight className="w-5 h-5" /></>
                   )}
                 </button>
               </div>

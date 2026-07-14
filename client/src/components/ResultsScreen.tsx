@@ -1,4 +1,5 @@
 import { Achievement } from '@/hooks/useXPSystem';
+import { ChildProfile } from '@/lib/children';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Heart, MessageCircle, RotateCcw, Star, Trophy, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -15,32 +16,45 @@ interface ResultsScreenProps {
   newlyUnlocked: Achievement[];
   onRestart: () => void;
   onShare?: () => void;
+  childProfile?: ChildProfile;
 }
 
-const DAD_MESSAGES: Record<string, { ar: string; en: string }> = {
-  perfect: {
-    ar: '💙 يا لينيدا حبيبتي، أنا أفخر بكِ أكثر من أي شيء في هذه الدنيا. 100%! هذا ليس حظًا، هذا دليل على ذكائكِ وجهدكِ الحقيقي. بابا يحبكِ ❤️',
-    en: '💙 Linda my love, I am more proud of you than anything in this world. 100%! That is not luck — that is proof of your real intelligence and effort. Dad loves you ❤️',
-  },
-  excellent: {
-    ar: '🌟 يا قمري! هذه النتيجة تثبت ما أعرفه دائمًا — أنتِ أذكى وأكثر قدرةً مما تظنين. واصلي يا نجمتي، بابا يراكِ وهو فخور جدًا! 💛',
-    en: '🌟 My shining star! This result proves what I always knew — you are smarter and more capable than you think. Keep going, Dad sees you and is so proud! 💛',
-  },
-  good: {
-    ar: '💜 يا لينيدا، هذا تقدم حقيقي وأنا سعيد جدًا بكِ. ما يهمني ليس فقط النتيجة، بل أنكِ لم تستسلمي وأكملتِ حتى النهاية. هذه هي روح الفائزة! 🦋',
-    en: '💜 Linda, this is real progress and I am so happy with you. What matters to me is not just the score, but that you never gave up and finished to the end. That is the spirit of a winner! 🦋',
-  },
-  tryAgain: {
-    ar: '🤗 حبيبتي يا لينيدا، لا يوجد شيء اسمه فشل عند بابا — يوجد فقط تعلّم. كل سؤال أخطأتِ فيه الآن أصبح درسًا ستتذكرينه دائمًا. الخسارة الوحيدة هي التوقف، وأنتِ لن تتوقفي! ❤️‍🔥',
-    en: '🤗 My darling Linda, there is no such thing as failure with Dad — there is only learning. Every question you missed is now a lesson you will always remember. The only loss is stopping, and you will NOT stop! ❤️‍🔥',
-  },
-};
+function buildDadMessages(child?: ChildProfile) {
+  const nameAr = child?.nameAr ?? 'حبيبي';
+  const nameEn = child?.nameEn ?? 'my dear';
+  const tone = child?.dadToneAr ?? `يا ${nameAr}`;
+  const toneEn = child?.dadToneEn ?? nameEn;
+  const isMale = child ? ['adam', 'noah'].includes(child.id) : false;
+  const pronoun = isMale ? 'ه' : 'ها';
+  const winner = isMale ? 'الفائز' : 'الفائزة';
+  const smart = isMale ? 'أذكى' : 'أذكى';
 
-function getDadMessage(pct: number) {
-  if (pct === 100) return DAD_MESSAGES.perfect;
-  if (pct >= 80) return DAD_MESSAGES.excellent;
-  if (pct >= 55) return DAD_MESSAGES.good;
-  return DAD_MESSAGES.tryAgain;
+  return {
+    perfect: {
+      ar: `💙 ${tone}، أنا أفخر بك أكثر من أي شيء في هذه الدنيا. 100%! هذا ليس حظًا، هذا دليل على ذكائك وجهدك الحقيقي. بابا يحبك ❤️`,
+      en: `💙 ${toneEn}, I am more proud of you than anything in this world. 100%! That is not luck — that is proof of your real intelligence. Dad loves you ❤️`,
+    },
+    excellent: {
+      ar: `🌟 ${tone}! هذه النتيجة تثبت ما أعرفه دائمًا — أنت ${smart} وأكثر قدرةً مما تظن. واصل يا نجمي، بابا يراك وهو فخور جدًا! 💛`,
+      en: `🌟 ${toneEn}! This result proves what I always knew — you are smarter and more capable than you think. Keep going, Dad sees you and is so proud! 💛`,
+    },
+    good: {
+      ar: `💜 ${tone}، هذا تقدم حقيقي وأنا سعيد جدًا بك. ما يهمني ليس فقط النتيجة، بل أنك لم تستسلم وأكملت حتى النهاية. هذه هي روح ${winner}! 🦋`,
+      en: `💜 ${toneEn}, this is real progress and I am so happy with you. What matters is that you never gave up and finished to the end. That is the spirit of a winner! 🦋`,
+    },
+    tryAgain: {
+      ar: `🤗 ${tone}، لا يوجد شيء اسمه فشل عند بابا — يوجد فقط تعلّم. كل سؤال أخطأت فيه الآن أصبح درسًا ستتذكر${pronoun} دائمًا. الخسارة الوحيدة هي التوقف، وأنت لن تتوقف! ❤️‍🔥`,
+      en: `🤗 ${toneEn}, there is no such thing as failure with Dad — there is only learning. Every question you missed is now a lesson you will always remember. The only loss is stopping, and you will NOT stop! ❤️‍🔥`,
+    },
+  };
+}
+
+function getDadMessage(pct: number, child?: ChildProfile) {
+  const msgs = buildDadMessages(child);
+  if (pct === 100) return msgs.perfect;
+  if (pct >= 80) return msgs.excellent;
+  if (pct >= 55) return msgs.good;
+  return msgs.tryAgain;
 }
 
 function ScoreCircle({ percentage }: { percentage: number }) {
@@ -90,9 +104,10 @@ export default function ResultsScreen({
   newlyUnlocked,
   onRestart,
   onShare,
+  childProfile,
 }: ResultsScreenProps) {
   const percentage = Math.round((correctCount / totalCount) * 100);
-  const msg = getDadMessage(percentage);
+  const msg = getDadMessage(percentage, childProfile);
   const [showAchievements, setShowAchievements] = useState(false);
 
   useEffect(() => {
@@ -121,9 +136,9 @@ export default function ResultsScreen({
 
         {/* Coloured top stripe */}
         <div className={`h-2 w-full ${percentage === 100 ? 'bg-gradient-to-r from-yellow-400 to-amber-400' :
-            percentage >= 80 ? 'bg-gradient-to-r from-teal-500 to-emerald-500' :
-              percentage >= 55 ? 'bg-gradient-to-r from-purple-500 to-violet-500' :
-                'bg-gradient-to-r from-orange-400 to-rose-400'
+          percentage >= 80 ? 'bg-gradient-to-r from-teal-500 to-emerald-500' :
+            percentage >= 55 ? 'bg-gradient-to-r from-purple-500 to-violet-500' :
+              'bg-gradient-to-r from-orange-400 to-rose-400'
           }`} />
 
         <div className="p-8 md:p-10 text-center">

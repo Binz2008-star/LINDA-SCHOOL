@@ -4,12 +4,12 @@ import NotFound from '@/pages/NotFound';
 import { Route, Switch } from 'wouter';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ThemeProvider } from './contexts/ThemeContext';
-import FamilySchool from './pages/FamilySchool';
+import SecureFamilySchool from './pages/SecureFamilySchool';
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={FamilySchool} />
+      <Route path="/" component={SecureFamilySchool} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

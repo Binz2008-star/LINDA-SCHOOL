@@ -1,141 +1,230 @@
-/**
- * useSpeech.ts
- * ─────────────────────────────────────────────────────────────────
- * Two-tier TTS for kids:
- *
- * Tier 1 — /api/tts  (FreeTTS proxy, ar-SA-ZariyahNeural)
- *   • Neural-quality Arabic female voice
- *   • Fetches MP3 blob → plays via HTMLAudioElement
- *   • Falls back to Tier 2 on any error or timeout
- *
- * Tier 2 — Web Speech API
- *   • Built-in browser fallback
- *   • Tries to pick a female Arabic voice when available
- */
-
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface SpeakOptions {
   lang?: 'ar' | 'en';
-  rate?: number;   // used for Web Speech fallback (0.5–2.0)
-  pitch?: number;  // used for Web Speech fallback (0–2)
-  volume?: number; // 0–1
+  rate?: number;
+  pitch?: number;
+  volume?: number;
 }
 
-// ── Tier-2: Web Speech fallback ───────────────────────────────────
-function speakWebSpeech(text: string, opts: SpeakOptions, onDone?: () => void) {
-  if (typeof window === 'undefined' || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
+function splitText(text: string, maximum = 170): string[] {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  if (!clean) return [];
 
-  const utter = new SpeechSynthesisUtterance(text);
-  const isAr = (opts.lang ?? 'ar') === 'ar';
-  utter.lang = isAr ? 'ar-SA' : 'en-US';
-  utter.rate = opts.rate ?? (isAr ? 0.82 : 0.9);
-  utter.pitch = opts.pitch ?? 1.15;
-  utter.volume = opts.volume ?? 1;
+  const sentences = clean.match(/[^.!؟،؛:]+[.!؟،؛:]?/g) ?? [clean];
+  const chunks: string[] = [];
+  let current = '';
 
-  // Prefer female voice when available
-  const getVoice = () => {
-    const voices = window.speechSynthesis.getVoices();
-    const locale = isAr ? 'ar' : 'en';
-    return (
-      voices.find(v => v.lang.startsWith(locale) && v.name.toLowerCase().includes('female')) ??
-      voices.find(v => v.lang.startsWith(locale) && /zariyah|layla|hala|salma|jenny|aria|sonia/i.test(v.name)) ??
-      voices.find(v => v.lang.startsWith(locale) && v.localService) ??
-      voices.find(v => v.lang.startsWith(locale))
-    );
-  };
-
-  const voice = getVoice();
-  if (voice) utter.voice = voice;
-  if (onDone) utter.onend = onDone;
-
-  window.speechSynthesis.speak(utter);
-}
-
-// ── Tier-1: Neural TTS via /api/tts ──────────────────────────────
-async function fetchAndPlayTTS(
-  text: string,
-  opts: SpeakOptions,
-  audioRef: React.MutableRefObject<HTMLAudioElement | null>,
-  signal: AbortSignal,
-): Promise<boolean> {
-  try {
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text.slice(0, 900), lang: opts.lang ?? 'ar' }),
-      signal,
-    });
-
-    if (!res.ok) return false;
-
-    const { audioUrl } = await res.json() as { audioUrl?: string };
-    if (!audioUrl) return false;
-
-    // Download MP3 blob
-    const mp3Res = await fetch(audioUrl, { signal });
-    if (!mp3Res.ok) return false;
-
-    const blob = await mp3Res.blob();
-    const url = URL.createObjectURL(blob);
-
-    // Play via HTMLAudioElement
-    if (audioRef.current) {
-      audioRef.current.pause();
-      URL.revokeObjectURL(audioRef.current.src);
+  for (const sentence of sentences) {
+    if (`${current} ${sentence}`.trim().length <= maximum) {
+      current = `${current} ${sentence}`.trim();
+      continue;
     }
-    const audio = new Audio(url);
-    audio.volume = opts.volume ?? 1;
-    audioRef.current = audio;
-    await audio.play();
-    return true;
-  } catch {
-    return false;
+    if (current) chunks.push(current);
+    current = sentence.trim();
   }
+
+  if (current) chunks.push(current);
+  return chunks.flatMap(chunk => {
+    if (chunk.length <= maximum) return [chunk];
+    const parts: string[] = [];
+    let part = '';
+    for (const word of chunk.split(' ')) {
+      if (`${part} ${word}`.trim().length > maximum && part) {
+        parts.push(part);
+        part = word;
+      } else {
+        part = `${part} ${word}`.trim();
+      }
+    }
+    if (part) parts.push(part);
+    return parts;
+  });
 }
 
-// ── Hook ──────────────────────────────────────────────────────────
+function pickVoice(language: 'ar' | 'en'): SpeechSynthesisVoice | undefined {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return undefined;
+  const voices = window.speechSynthesis.getVoices();
+  const locale = language === 'ar' ? 'ar' : 'en';
+  return voices.find(voice => voice.lang.toLowerCase() === (language === 'ar' ? 'ar-ae' : 'en-us'))
+    ?? voices.find(voice => voice.lang.startsWith(locale) && /zariyah|layla|hala|salma|jenny|aria|sonia|female/i.test(voice.name))
+    ?? voices.find(voice => voice.lang.startsWith(locale) && voice.localService)
+    ?? voices.find(voice => voice.lang.startsWith(locale))
+    ?? voices.find(voice => voice.default);
+}
+
 export function useSpeech() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const runIdRef = useRef(0);
+  const resumeTimerRef = useRef<number | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [voiceName, setVoiceName] = useState<string | null>(null);
+
+  const clearResumeTimer = useCallback(() => {
+    if (resumeTimerRef.current !== null) {
+      window.clearInterval(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+  }, []);
 
   const stop = useCallback(() => {
-    // Cancel any in-flight fetch
+    runIdRef.current += 1;
     abortRef.current?.abort();
     abortRef.current = null;
-    // Stop HTMLAudio
+    clearResumeTimer();
+
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.src = '';
       audioRef.current = null;
     }
-    // Stop Web Speech
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
+    utteranceRef.current = null;
+    setIsSpeaking(false);
+  }, [clearResumeTimer]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    const loadVoices = () => window.speechSynthesis.getVoices();
+    loadVoices();
+    window.speechSynthesis.addEventListener?.('voiceschanged', loadVoices);
+    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', loadVoices);
   }, []);
 
   useEffect(() => () => stop(), [stop]);
 
-  const speak = useCallback(async (text: string, opts: SpeakOptions = {}) => {
-    stop();
+  const speakWithBrowser = useCallback((text: string, options: SpeakOptions, runId: number) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+      setError('لا يوجد محرك صوت متاح على هذا الجهاز.');
+      return;
+    }
 
+    const synthesis = window.speechSynthesis;
+    const language = options.lang ?? 'ar';
+    const chunks = splitText(text);
+    const voice = pickVoice(language);
+    setVoiceName(voice?.name ?? 'صوت الجهاز');
+    let index = 0;
+
+    const finish = () => {
+      if (runId !== runIdRef.current) return;
+      clearResumeTimer();
+      setIsSpeaking(false);
+      utteranceRef.current = null;
+    };
+
+    const playNext = () => {
+      if (runId !== runIdRef.current) return;
+      if (index >= chunks.length) return finish();
+
+      const utterance = new SpeechSynthesisUtterance(chunks[index]);
+      utterance.lang = language === 'ar' ? (voice?.lang.startsWith('ar') ? voice.lang : 'ar-AE') : (voice?.lang.startsWith('en') ? voice.lang : 'en-US');
+      utterance.rate = options.rate ?? (language === 'ar' ? 0.8 : 0.88);
+      utterance.pitch = options.pitch ?? 1;
+      utterance.volume = options.volume ?? 1;
+      if (voice) utterance.voice = voice;
+
+      utterance.onstart = () => {
+        if (runId !== runIdRef.current) return;
+        setIsSpeaking(true);
+        setError(null);
+      };
+      utterance.onend = () => {
+        if (runId !== runIdRef.current) return;
+        index += 1;
+        window.setTimeout(playNext, 50);
+      };
+      utterance.onerror = event => {
+        if (runId !== runIdRef.current) return;
+        if (!['canceled', 'interrupted'].includes(event.error)) {
+          setError(event.error === 'not-allowed'
+            ? 'المتصفح منع الصوت. اضغط زر الصوت مرة أخرى بعد الضغط داخل الصفحة.'
+            : 'تعذر تشغيل صوت الجهاز. تأكد من مستوى الصوت أو تثبيت صوت عربي.');
+        }
+        finish();
+      };
+
+      utteranceRef.current = utterance;
+      synthesis.resume();
+      synthesis.speak(utterance);
+    };
+
+    resumeTimerRef.current = window.setInterval(() => {
+      if (runId === runIdRef.current && synthesis.paused) synthesis.resume();
+    }, 3000);
+    playNext();
+  }, [clearResumeTimer]);
+
+  const speak = useCallback(async (text: string, options: SpeakOptions = {}) => {
+    const clean = text.trim();
+    if (!clean) return;
+
+    stop();
+    setError(null);
+    setVoiceName('الصوت العربي العصبي');
+    const runId = runIdRef.current;
     const controller = new AbortController();
     abortRef.current = controller;
+    const timeout = window.setTimeout(() => controller.abort(), 5500);
 
-    // 5-second timeout for neural fetch — then fall back immediately
-    const timer = setTimeout(() => controller.abort(), 5000);
+    try {
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: clean.slice(0, 850), lang: options.lang ?? 'ar' }),
+        signal: controller.signal,
+      });
 
-    const success = await fetchAndPlayTTS(text, opts, audioRef, controller.signal);
-    clearTimeout(timer);
+      if (runId !== runIdRef.current) return;
+      if (!response.ok) throw new Error('neural speech unavailable');
 
-    if (!success && !controller.signal.aborted) {
-      // Tier-2 fallback
-      speakWebSpeech(text, opts);
+      const blob = await response.blob();
+      if (!blob.size) throw new Error('empty audio');
+      const url = URL.createObjectURL(blob);
+      audioUrlRef.current = url;
+      const audio = new Audio(url);
+      audio.volume = options.volume ?? 1;
+      audioRef.current = audio;
+      audio.onplay = () => {
+        if (runId === runIdRef.current) setIsSpeaking(true);
+      };
+      audio.onended = () => {
+        if (runId !== runIdRef.current) return;
+        setIsSpeaking(false);
+        if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+        audioRef.current = null;
+      };
+      audio.onerror = () => {
+        if (runId === runIdRef.current) speakWithBrowser(clean, options, runId);
+      };
+      await audio.play();
+    } catch {
+      if (runId === runIdRef.current) speakWithBrowser(clean, options, runId);
+    } finally {
+      window.clearTimeout(timeout);
+      if (runId === runIdRef.current) abortRef.current = null;
     }
-  }, [stop]);
+  }, [speakWithBrowser, stop]);
 
-  const isSupported = true; // always supported — either neural or Web Speech
+  const isSupported = typeof window !== 'undefined' && ('fetch' in window || 'speechSynthesis' in window);
 
-  return { speak, stop, isSupported };
+  return {
+    speak,
+    stop,
+    isSupported,
+    isSpeaking,
+    error,
+    voiceName,
+  };
 }

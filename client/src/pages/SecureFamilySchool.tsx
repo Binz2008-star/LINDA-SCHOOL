@@ -68,6 +68,15 @@ interface ProgressState {
   lastStudied?: string;
   bonusXP?: number;
   bonusCoins?: number;
+  streak?: number;
+  lastStreakDate?: string;
+}
+
+interface BackupData {
+  version: 2;
+  exportedAt: string;
+  progress: Record<LearnerId, ProgressState>;
+  requests: RewardRequest[];
 }
 
 interface SecurityConfig {
@@ -552,6 +561,48 @@ function ParentPanel({
           {message && <p className="mt-3 text-sm text-green-700 bg-green-50 rounded-xl p-3 arabic-text">{message}</p>}
         </section>
 
+        <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 mb-6">
+          <h2 className="text-xl font-black text-gray-900 arabic-text mb-4 flex items-center gap-2">💾 نسخ احتياطي واستعادة</h2>
+          <p className="text-sm text-gray-500 arabic-text mb-4">صدّر بيانات الأولاد كملف JSON لحفظها، أو استعد من نسخة سابقة.</p>
+          <div className="flex gap-3 flex-wrap">
+            <button onClick={() => {
+              const backup: BackupData = {
+                version: 2,
+                exportedAt: new Date().toISOString(),
+                progress: Object.fromEntries(LEARNER_ORDER.map(id => [id, loadProgress(id)])) as Record<LearnerId, ProgressState>,
+                requests: loadRequests(),
+              };
+              const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `family-school-backup-${new Date().toISOString().slice(0, 10)}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+              setMessage('✅ تم تصدير النسخة الاحتياطية.');
+            }} className="px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold arabic-text text-sm">⬇️ تصدير النسخة الاحتياطية</button>
+            <label className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-bold arabic-text text-sm cursor-pointer">
+              ⬆️ استعادة من ملف
+              <input type="file" accept=".json" className="hidden" onChange={async e => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const text = await file.text();
+                  const data = JSON.parse(text) as BackupData;
+                  if (data.version !== 2) return setMessage('❌ الملف غير متوافق.');
+                  LEARNER_ORDER.forEach(id => { if (data.progress[id]) saveProgress(id, data.progress[id]); });
+                  saveRequests(data.requests);
+                  onRequests(data.requests);
+                  setMessage('✅ تمت الاستعادة بنجاح. أعد فتح حساب الطفل لرؤية التغييرات.');
+                } catch {
+                  setMessage('❌ فشل قراءة الملف. تأكد أنه ملف نسخة احتياطية صحيح.');
+                }
+              }} />
+            </label>
+          </div>
+          {message && <p className="mt-3 text-sm text-green-700 bg-green-50 rounded-xl p-3 arabic-text">{message}</p>}
+        </section>
+
         <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
           <h2 className="text-xl font-black text-gray-900 arabic-text mb-4">تغيير رمز طفل</h2>
           <div className="grid sm:grid-cols-2 gap-4">{LEARNER_ORDER.map(id => {
@@ -655,7 +706,22 @@ export default function SecureFamilySchool() {
   const completeLesson = (lessonId: string, correct: number, total: number) => {
     const previous = progress.completed[lessonId];
     const bestCorrect = Math.max(previous?.correct ?? 0, correct);
-    const next: ProgressState = { completed: { ...progress.completed, [lessonId]: { correct: bestCorrect, total, completedAt: new Date().toISOString() } }, lastStudied: new Date().toISOString() };
+    const today = new Date().toDateString();
+    const lastDate = progress.lastStreakDate;
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    const newStreak = lastDate === today
+      ? (progress.streak ?? 1)
+      : lastDate === yesterday
+        ? (progress.streak ?? 0) + 1
+        : 1;
+    const next: ProgressState = {
+      completed: { ...progress.completed, [lessonId]: { correct: bestCorrect, total, completedAt: new Date().toISOString() } },
+      lastStudied: new Date().toISOString(),
+      bonusXP: progress.bonusXP,
+      bonusCoins: progress.bonusCoins,
+      streak: newStreak,
+      lastStreakDate: today,
+    };
     setProgress(next);
     saveProgress(learner.id, next);
   };
@@ -679,7 +745,7 @@ export default function SecureFamilySchool() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50" dir="rtl">
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-gray-200"><div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between"><div className="flex items-center gap-3"><ChildAvatar learner={learner} size="small" /><div><h1 className={`font-black ${learner.theme.text} arabic-text`}>مدرسة {learner.nameAr}</h1><p className="text-xs text-gray-500 arabic-text">المستوى {stats.level} • {stats.xp} XP • 🪙 {availableCoins}</p></div></div><div className="flex items-center gap-1"><button onClick={() => setShowTool(true)} className={`p-2.5 rounded-xl hover:bg-opacity-80 ${learner.theme.text}`} title="الأداة التفاعلية"><Sparkles className="w-5 h-5" /></button>{learner.id === 'noah' && <button onClick={() => setShowNoahGames(true)} className="p-2.5 rounded-xl hover:bg-orange-50 text-orange-600" title="ألعاب نوح"><Gamepad2 className="w-5 h-5" /></button>}<button onClick={() => setShowRewards(true)} className="p-2.5 rounded-xl hover:bg-amber-50 text-amber-600" title="المكافآت"><Gift className="w-5 h-5" /></button>{selectedSubject && <button onClick={() => setSelectedSubject(null)} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-600"><Home className="w-5 h-5" /></button>}<button onClick={logout} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-500" title="قفل الحساب"><LogOut className="w-5 h-5" /></button></div></div></header>
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-gray-200"><div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between"><div className="flex items-center gap-3"><ChildAvatar learner={learner} size="small" /><div><h1 className={`font-black ${learner.theme.text} arabic-text`}>مدرسة {learner.nameAr}</h1><p className="text-xs text-gray-500 arabic-text">المستوى {stats.level} • {stats.xp} XP • 🪙 {availableCoins}{(progress.streak ?? 0) > 1 ? ` • 🔥 ${progress.streak} يوم` : ''}</p></div></div><div className="flex items-center gap-1"><button onClick={() => setShowTool(true)} className={`p-2.5 rounded-xl hover:bg-opacity-80 ${learner.theme.text}`} title="الأداة التفاعلية"><Sparkles className="w-5 h-5" /></button>{learner.id === 'noah' && <button onClick={() => setShowNoahGames(true)} className="p-2.5 rounded-xl hover:bg-orange-50 text-orange-600" title="ألعاب نوح"><Gamepad2 className="w-5 h-5" /></button>}<button onClick={() => setShowRewards(true)} className="p-2.5 rounded-xl hover:bg-amber-50 text-amber-600" title="المكافآت"><Gift className="w-5 h-5" /></button>{selectedSubject && <button onClick={() => setSelectedSubject(null)} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-600"><Home className="w-5 h-5" /></button>}<button onClick={logout} className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-500" title="قفل الحساب"><LogOut className="w-5 h-5" /></button></div></div></header>
       <main className="max-w-6xl mx-auto px-4 py-7 md:py-10">
         {selectedSubject ? <div><button onClick={() => setSelectedSubject(null)} className="mb-5 flex items-center gap-2 text-gray-600 arabic-text"><ArrowRight className="w-5 h-5" /> كل المواد</button><div className={`rounded-3xl ${learner.theme.light} ${learner.theme.border} border p-6 mb-6`}><h1 className={`text-2xl font-black ${learner.theme.text} arabic-text`}>{SUBJECTS[selectedSubject].emoji} {SUBJECTS[selectedSubject].label}</h1><p className="text-gray-600 mt-2 arabic-text">{SUBJECTS[selectedSubject].description}</p></div><div className="grid md:grid-cols-2 gap-4">{subjectLessons.map(lesson => <button key={lesson.id} onClick={() => setActiveLessonId(lesson.id)} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md p-5 text-right"><div className="flex gap-4"><span className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${learner.theme.gradient} text-white text-2xl flex items-center justify-center`}>{lesson.emoji}</span><div className="flex-1"><div className="flex items-center justify-between"><h2 className="font-black text-gray-900 arabic-text">{lesson.title}</h2>{progress.completed[lesson.id] && <CheckCircle2 className="w-5 h-5 text-green-500" />}</div><p className="text-sm text-gray-500 mt-2 arabic-text">{lesson.subtitle}</p></div><ChevronLeft className="w-5 h-5 text-gray-300 mt-4" /></div></button>)}</div></div> : <><section className={`rounded-3xl bg-gradient-to-r ${learner.theme.gradient} text-white p-6 md:p-8 shadow-xl mb-7`}><div className="flex flex-col md:flex-row items-center gap-5"><ChildAvatar learner={learner} /><div className="text-center md:text-right flex-1"><p className="text-white/80 arabic-text">أهلاً بعودتك</p><h1 className="text-4xl font-black arabic-text">يا {learner.nameAr}</h1><p className="mt-3 text-white/90 arabic-text">حسابك محمي الآن. تعلّم الدرس، استمع لشرح بابا المعلم، وارفع مستواك من عملك الحقيقي.</p><div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4"><span className="bg-white/15 rounded-full px-3 py-1.5 text-xs">⭐ المستوى {stats.level}</span><span className="bg-white/15 rounded-full px-3 py-1.5 text-xs">⚡ {stats.xp} XP</span><span className="bg-white/15 rounded-full px-3 py-1.5 text-xs">🪙 {availableCoins} متاحة</span></div></div></div></section><section className="grid grid-cols-3 gap-3 mb-8"><div className="bg-white rounded-2xl border border-gray-100 p-4 text-center"><div className={`text-3xl font-black ${learner.theme.text}`}>{stats.completedLessons}</div><p className="text-xs text-gray-500 arabic-text">دروس مكتملة</p></div><div className="bg-white rounded-2xl border border-gray-100 p-4 text-center"><div className="text-3xl font-black text-blue-600">{stats.xp}</div><p className="text-xs text-gray-500">XP</p></div><button onClick={() => setShowRewards(true)} className="bg-white rounded-2xl border border-amber-200 p-4 text-center"><div className="text-3xl font-black text-amber-600">{availableCoins}</div><p className="text-xs text-gray-500 arabic-text">عملات المكافآت</p></button></section><section className="mb-8"><h2 className="text-2xl font-black text-gray-900 arabic-text mb-4">خطة اليوم</h2><div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">{dailyPlan.length ? dailyPlan.map(lesson => <button key={lesson.id} onClick={() => setActiveLessonId(lesson.id)} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md p-5 text-right"><span className={`w-12 h-12 rounded-xl bg-gradient-to-br ${learner.theme.gradient} text-white text-2xl flex items-center justify-center mb-4`}>{lesson.emoji}</span><h3 className="font-black text-gray-900 arabic-text">{lesson.title}</h3><p className="text-xs text-gray-500 mt-2 arabic-text">{SUBJECTS[lesson.subject].label}</p></button>) : <div className="sm:col-span-2 lg:col-span-4 rounded-2xl bg-green-50 border border-green-200 p-6 text-center"><Trophy className="w-8 h-8 text-green-600 mx-auto" /><p className="font-black text-green-900 arabic-text mt-2">أكملت جميع الدروس الحالية</p></div>}</div></section>{learner.id === 'noah' && <section className="mb-8"><h2 className="text-2xl font-black text-gray-900 arabic-text mb-4">🎮 ألعاب نوح</h2><div className="rounded-3xl bg-gradient-to-r from-orange-500 to-amber-500 text-white p-6 shadow-xl flex items-center justify-between gap-4"><div><p className="text-white/80 arabic-text text-sm mb-1">⚡ XP مضاعف على كل لعبة!</p><h3 className="text-xl font-black arabic-text">سباق سيارات • بطاقات • ترتيب • ركن السيارة</h3><p className="text-white/70 text-xs mt-2 arabic-text">4 ألعاب تفاعلية خاصة بنوح</p></div><button onClick={() => setShowNoahGames(true)} className="flex-shrink-0 bg-white text-orange-600 font-black arabic-text px-5 py-3 rounded-2xl shadow-md hover:bg-orange-50 active:scale-95 transition-transform flex items-center gap-2"><Gamepad2 className="w-5 h-5" /> العب الآن</button></div></section>}<section><h2 className="text-2xl font-black text-gray-900 arabic-text mb-4">المواد والمسارات</h2><div className="grid grid-cols-2 md:grid-cols-3 gap-4">{SUBJECT_ORDER.map(subject => { const lessons = curriculum.filter(lesson => lesson.subject === subject); const done = lessons.filter(lesson => progress.completed[lesson.id]).length; return <button key={subject} onClick={() => setSelectedSubject(subject)} className={`rounded-2xl border-2 ${subject === 'interest' ? learner.theme.border : 'border-gray-100'} ${subject === 'interest' ? learner.theme.light : 'bg-white'} p-5 text-right shadow-sm`}><div className="flex items-center justify-between"><span className="text-3xl">{subject === 'interest' ? learner.interestEmoji : SUBJECTS[subject].emoji}</span><span className="text-xs text-gray-500">{done}/{lessons.length}</span></div><h3 className={`font-black mt-4 arabic-text ${subject === 'interest' ? learner.theme.text : 'text-gray-900'}`}>{subject === 'interest' ? `مسار ${learner.interestAr}` : SUBJECTS[subject].label}</h3><div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mt-4"><div className={`h-full bg-gradient-to-r ${learner.theme.gradient}`} style={{ width: `${lessons.length ? (done / lessons.length) * 100 : 0}%` }} /></div></button>; })}</div></section></>}
       </main>

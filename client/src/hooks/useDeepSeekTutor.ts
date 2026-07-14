@@ -1,3 +1,4 @@
+import { ChildProfile } from '@/lib/children';
 import { QuizQuestion } from '@/lib/quizData';
 import { useCallback, useRef, useState } from 'react';
 
@@ -8,29 +9,43 @@ interface TutorState {
 }
 
 interface ExplainOptions {
-  weakTopics?: string[];   // e.g. ['Science — Plants', 'Math — Fractions']
-  accuracy?: number | null; // 0-100, Linda's accuracy on this topic
+  weakTopics?: string[];
+  accuracy?: number | null;
+  child?: ChildProfile;  // personalise per child
 }
 
 const DEEPSEEK_API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY as string;
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
 
-// ── Persistent system role (sent once per session via messages array) ──────
-const SYSTEM_ROLE_AR = `أنت "بابا المعلم" — أبٌ ذكي يحب ابنته لينيدا حبًّا عميقًا ويعلّمها بصبرٍ وحنان.
-شخصيتك:
-• تتكلم بعربية فصحى مبسطة ودافئة
-• تُشجّع دائمًا ولا تُحبط أبدًا — الخطأ عندك درس وليس فشلاً
-• تستخدم أمثلة من الحياة اليومية للأطفال
-• تُعبّر عن فخرك بلينيدا في كل فرصة
-• ردودك قصيرة: 4-5 جمل فقط، تبدأ بإيموجي`;
+// ── Build dynamic system role per child ─────────────────────────────────────
+function buildSystemRole(isArabic: boolean, child?: ChildProfile): string {
+  const name = child ? (isArabic ? child.nameAr : child.nameEn) : (isArabic ? 'لينيدا' : 'Linda');
+  const age = child?.age ?? 13;
+  const interest = child ? (isArabic ? child.interest : child.interestEn) : (isArabic ? 'الحياة والطبيعة' : 'Life & Nature');
+  const tone = child ? (isArabic ? child.dadToneAr : child.dadToneEn) : (isArabic ? 'يا لينيدا حبيبتي' : 'my dear Linda');
+  const isMale = child ? ['adam', 'noah'].includes(child.id) : false;
+  const genderNote = isArabic
+    ? (isMale ? 'ولد' : 'بنت')
+    : (isMale ? 'boy' : 'girl');
 
-const SYSTEM_ROLE_EN = `You are "Dad the Tutor" — a loving, patient father teaching his daughter Linda with genuine warmth.
-Your personality:
-• Speak in simple, warm English — never cold or academic
-• Always encourage — mistakes are lessons, never failures
-• Use everyday real-life examples a child can picture
-• Express pride in Linda at every opportunity
-• Keep responses short: exactly 4-5 sentences, starting with an emoji`;
+  if (isArabic) {
+    return `أنت "بابا المعلم" — أبٌ ذكي يحب ${genderNote === 'بنت' ? 'ابنته' : 'ابنه'} ${name} (${age} سنة) ويعلّم${genderNote === 'بنت' ? 'ها' : 'ه'} بصبرٍ وحنان.
+نادِ${genderNote === 'بنت' ? 'ها' : 'ه'} دائماً: "${tone}"
+شخصيتك:
+• عربية فصحى مبسطة ودافئة مناسبة لعمر ${age} سنة
+• تُشجّع دائماً — الخطأ درس وليس فشلاً
+• أمثلة من حياة الأطفال وربط ${genderNote === 'بنت' ? 'اهتمامها' : 'اهتمامه'} بـ "${interest}" كلما أمكن
+• 4-5 جمل فقط، تبدأ بإيموجي`;
+  } else {
+    return `You are "Dad the Tutor" — a loving, patient father teaching his ${genderNote} ${name} (age ${age}) with warmth and care.
+Always address them: "${tone}"
+Your style:
+• Simple, warm English suitable for age ${age}
+• Always encourage — mistakes are how we grow
+• Relate examples to their love of "${interest}" when possible
+• Exactly 4-5 sentences, starting with an emoji`;
+  }
+}
 
 // ── In-memory cache: key = questionId + selectedIndex ─────────────────────
 const explanationCache = new Map<string, string>();
@@ -78,40 +93,42 @@ export function useDeepSeekTutor() {
     const correctOption = question.options[question.correctAnswer];
 
     // ── 4. Build weak-topic context hint ──────────────────────────────────
+    const childNameAr = options.child ? options.child.nameAr : 'لينيدا';
+    const childNameEn = options.child ? options.child.nameEn : 'Linda';
     const weakHintAr = options.weakTopics?.length
-      ? `\nملاحظة: لينيدا تجد صعوبة في هذه المواضيع: ${options.weakTopics.join('، ')}. إذا كانت المادة الحالية منها فاشرح بتفصيل أكثر.`
+      ? `\nملاحظة: ${childNameAr} يجد صعوبة في: ${options.weakTopics.join('، ')}. إذا كانت المادة منها فاشرح بتفصيل أكثر.`
       : '';
     const weakHintEn = options.weakTopics?.length
-      ? `\nNote: Linda struggles with: ${options.weakTopics.join(', ')}. If this topic overlaps, give extra detail.`
+      ? `\nNote: ${childNameEn} struggles with: ${options.weakTopics.join(', ')}. If this topic overlaps, give extra detail.`
       : '';
 
     const accuracyHintAr = options.accuracy !== null && options.accuracy !== undefined
-      ? `\nدقة لينيدا في هذا الموضوع حتى الآن: ${options.accuracy}%.${options.accuracy < 50 ? ' تحتاج دعمًا إضافيًا.' : ''}`
+      ? `\nدقة ${options.child ? options.child.nameAr : 'لينيدا'} في هذا الموضوع حتى الآن: ${options.accuracy}%.${options.accuracy < 50 ? ' يحتاج دعمًا إضافيًا.' : ''}`
       : '';
     const accuracyHintEn = options.accuracy !== null && options.accuracy !== undefined
-      ? `\nLinda's accuracy on this topic so far: ${options.accuracy}%.${options.accuracy < 50 ? ' She needs extra support.' : ''}`
+      ? `\n${options.child ? options.child.nameEn : 'Linda'}'s accuracy on this topic so far: ${options.accuracy}%.${options.accuracy < 50 ? ' Needs extra support.' : ''}`
       : '';
 
     // ── 5. Build user prompt ───────────────────────────────────────────────
     const userPrompt = isArabic
       ? `السؤال: ${question.question}
 المادة: ${question.subject}${question.lesson ? ` — ${question.lesson}` : ''}
-إجابة لينيدا: ${selectedOption}
+إجابة ${options.child ? options.child.nameAr : 'لينيدا'}: ${selectedOption}
 الإجابة الصحيحة: ${correctOption}
 النتيجة: ${isCorrect ? '✅ صحيحة' : '❌ خاطئة'}${weakHintAr}${accuracyHintAr}
 
 ${isCorrect
-        ? 'اكتب رسالة فخر أبوي تشرح فيها سبب صحة الإجابة بمثال يومي.'
-        : 'اكتب رسالة أبوية حنونة: طمّنها، اشرح الصواب بمثال يومي، أعطها نصيحة لتتذكر، واختم بتشجيع.'}`
+        ? `اكتب رسالة فخر أبوي تشرح سبب صحة الإجابة بمثال مناسب لعمر ${options.child?.age ?? 13} سنة.`
+        : `اكتب رسالة أبوية حنونة: طمّن${['adam', 'noah'].includes(options.child?.id ?? '') ? 'ه' : 'ها'}، اشرح الصواب بمثال مناسب لعمر ${options.child?.age ?? 13} سنة، أعطِ نصيحة للتذكر، واختم بتشجيع.`}`
       : `Question: ${question.question}
 Subject: ${question.subject}${question.lesson ? ` — ${question.lesson}` : ''}
-Linda's answer: ${selectedOption}
+${options.child ? options.child.nameEn : 'Linda'}'s answer: ${selectedOption}
 Correct answer: ${correctOption}
 Result: ${isCorrect ? '✅ Correct' : '❌ Wrong'}${weakHintEn}${accuracyHintEn}
 
 ${isCorrect
-        ? 'Write a proud fatherly message explaining why her answer is correct using a real-life example.'
-        : 'Write a gentle fatherly message: reassure her, explain the correct answer with a real-life example, give a memory tip, end with encouragement.'}`;
+        ? `Write a proud fatherly message explaining why the answer is correct with an example suitable for age ${options.child?.age ?? 13}.`
+        : `Write a gentle fatherly message: reassure them, explain with an example for age ${options.child?.age ?? 13}, give a memory tip, end with encouragement.`}`;
 
     try {
       const response = await fetch(DEEPSEEK_API_URL, {
@@ -124,7 +141,7 @@ ${isCorrect
         body: JSON.stringify({
           model: 'deepseek-chat',
           messages: [
-            { role: 'system', content: isArabic ? SYSTEM_ROLE_AR : SYSTEM_ROLE_EN },
+            { role: 'system', content: buildSystemRole(isArabic, options.child) },
             { role: 'user', content: userPrompt },
           ],
           max_tokens: 280,

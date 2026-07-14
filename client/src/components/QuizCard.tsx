@@ -1,4 +1,5 @@
 import { useDeepSeekTutor } from '@/hooks/useDeepSeekTutor';
+import { ChildProfile } from '@/lib/children';
 import { QuizQuestion } from '@/lib/quizData';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, ChevronDown, ChevronUp, Heart, Loader2, Sparkles, XCircle } from 'lucide-react';
@@ -12,6 +13,7 @@ interface QuizCardProps {
   showResult?: boolean;
   weakTopics?: string[];
   accuracyOnTopic?: number | null;
+  childProfile?: ChildProfile;
 }
 
 export default function QuizCard({
@@ -22,6 +24,7 @@ export default function QuizCard({
   showResult = false,
   weakTopics = [],
   accuracyOnTopic = null,
+  childProfile,
 }: QuizCardProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [tutorOpen, setTutorOpen] = useState(false);
@@ -45,7 +48,7 @@ export default function QuizCard({
     setTimeout(() => {
       onAnswer(index, isCorrect);
       setIsAnimating(false);
-      explain(question, index, { weakTopics, accuracy: accuracyOnTopic });
+      explain(question, index, { weakTopics, accuracy: accuracyOnTopic, child: childProfile });
       if (!isCorrect) setTutorOpen(true);
       if (isCorrect) { setShowBurst(true); setTimeout(() => setShowBurst(false), 1800); }
     }, 300);
@@ -195,8 +198,8 @@ export default function QuizCard({
                 <button
                   onClick={() => setTutorOpen(o => !o)}
                   className={`w-full flex items-center gap-2 px-4 py-3 font-semibold text-sm transition-colors ${isCorrect
-                      ? 'bg-gradient-to-r from-rose-50 to-pink-50 text-rose-800 hover:from-rose-100 hover:to-pink-100'
-                      : 'bg-gradient-to-r from-violet-50 to-purple-50 text-violet-900 hover:from-violet-100 hover:to-purple-100'
+                    ? 'bg-gradient-to-r from-rose-50 to-pink-50 text-rose-800 hover:from-rose-100 hover:to-pink-100'
+                    : 'bg-gradient-to-r from-violet-50 to-purple-50 text-violet-900 hover:from-violet-100 hover:to-purple-100'
                     } ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
                   <Heart className="w-4 h-4 flex-shrink-0 fill-current" />

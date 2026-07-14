@@ -8,23 +8,21 @@ export interface TopicStat {
   lastSeen: string;
 }
 
-const STORAGE_KEY = 'linda_weak_topics';
-
-function load(): TopicStat[] {
+function load(key: string): TopicStat[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(`${key}_weak_topics`);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
-function save(data: TopicStat[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+function save(key: string, data: TopicStat[]) {
+  try { localStorage.setItem(`${key}_weak_topics`, JSON.stringify(data)); } catch { /* ignore */ }
 }
 
-export function useWeakTopics() {
+export function useWeakTopics(childKey: string = 'linda') {
   const [topics, setTopics] = useState<TopicStat[]>([]);
 
-  useEffect(() => { setTopics(load()); }, []);
+  useEffect(() => { setTopics(load(childKey)); }, [childKey]);
 
   const recordAnswer = useCallback((subject: string, lesson: string, isCorrect: boolean) => {
     setTopics(prev => {
@@ -46,10 +44,10 @@ export function useWeakTopics() {
           lastSeen: new Date().toISOString(),
         }];
       }
-      save(updated);
+      save(childKey, updated);
       return updated;
     });
-  }, []);
+  }, [childKey]);
 
   // Topics with <60% accuracy and at least 2 attempts
   const weakTopics = topics

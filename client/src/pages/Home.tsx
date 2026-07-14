@@ -1,3 +1,4 @@
+import ChildSelector from '@/components/ChildSelector';
 import ProgressBar from '@/components/ProgressBar';
 import QuizCard from '@/components/QuizCard';
 import QuizModeSelector from '@/components/QuizModeSelector';
@@ -8,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { useScoreHistory } from '@/hooks/useScoreHistory';
 import { useWeakTopics } from '@/hooks/useWeakTopics';
 import { useXPSystem } from '@/hooks/useXPSystem';
+import { ChildId, CHILDREN, getChild } from '@/lib/children';
 import { getDailyQuestions, getQuestionsBySubject, QuizQuestion } from '@/lib/quizData';
 import { motion } from 'framer-motion';
-import { BarChart2, ChevronRight, Home as HomeIcon, MessageCircle, Star, Zap } from 'lucide-react';
+import { BarChart2, ChevronRight, Home as HomeIcon, LogOut, MessageCircle, Star, Zap } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 type QuizState = 'mode-selection' | 'subject-selection' | 'quiz' | 'results' | 'stats';
@@ -19,6 +21,7 @@ type QuizMode = 'mixed' | 'arabic' | 'english' | 'subject' | 'daily';
 const WHATSAPP_NUMBER = '0528688396';
 
 export default function Home() {
+  const [activeChild, setActiveChild] = useState<ChildId | null>(null);
   const [state, setState] = useState<QuizState>('mode-selection');
   const [mode, setMode] = useState<QuizMode>('mixed');
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -28,13 +31,22 @@ export default function Home() {
   const [showResult, setShowResult] = useState(false);
   const [lastXPEarned, setLastXPEarned] = useState(0);
   const [levelBeforeQuiz, setLevelBeforeQuiz] = useState(1);
+
+  const child = activeChild ? getChild(activeChild) : CHILDREN['linda'];
+  const isMale = activeChild ? ['adam', 'noah'].includes(activeChild) : false;
+
   const { history, addScore, clearHistory, bestScore, averageScore, totalQuizzes, streak } = useScoreHistory();
   const {
     level, levelTitleAr, levelTitleEn, xpInCurrentLevel, xpForNextLevel,
     newlyUnlocked, addQuizXP, addStreakAchievement, clearNewlyUnlocked,
-  } = useXPSystem();
+  } = useXPSystem(child.storageKey, isMale);
   const prevLevel = useRef(level);
-  const { weakTopics, reviewDue, recordAnswer, accuracyFor } = useWeakTopics();
+  const { weakTopics, reviewDue, recordAnswer, accuracyFor } = useWeakTopics(child.storageKey);
+
+  // Show child selector first
+  if (!activeChild) {
+    return <ChildSelector onSelect={(id) => setActiveChild(id)} />;
+  }
 
   const handleSelectMode = (selectedMode: QuizMode) => {
     setMode(selectedMode);
@@ -139,22 +151,24 @@ export default function Home() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3"
           >
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+            {/* Child avatar */}
+            <div className="relative flex-shrink-0">
               <img
-                src="/manus-storage/quiz-logo_7b50fe21.png"
-                alt="Quiz Logo"
-                className="w-8 h-8"
+                src={child.photo}
+                alt={child.nameAr}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                className={`w-10 h-10 rounded-full object-cover ring-2 ${child.colorRing}`}
               />
             </div>
             <div>
-              <h1 className="text-lg font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent leading-tight">
-                Linda's Quiz
+              <h1 className={`text-base font-bold ${child.colorText} leading-tight arabic-text`} dir="rtl">
+                {child.emoji} {child.nameAr}
               </h1>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-purple-600 font-semibold">Lv.{level} {levelTitleAr}</span>
-                <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <span className={`text-xs font-semibold ${child.colorText}`}>Lv.{level} {levelTitleAr}</span>
+                <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-teal-500 to-purple-500 rounded-full transition-all duration-700"
+                    className={`h-full bg-gradient-to-r ${child.color} rounded-full transition-all duration-700`}
                     style={{ width: `${(xpInCurrentLevel / xpForNextLevel) * 100}%` }}
                   />
                 </div>
@@ -186,6 +200,21 @@ export default function Home() {
                 <span className="hidden sm:inline">الرئيسية</span>
               </motion.button>
             )}
+            {/* Switch child button */}
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={() => {
+                setActiveChild(null);
+                setState('mode-selection');
+                setQuestions([]);
+                setAnswers([]);
+              }}
+              title="تغيير الطفل"
+              className="flex items-center gap-1 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 text-sm min-h-[44px]"
+            >
+              <LogOut className="w-4 h-4" />
+            </motion.button>
           </div>
         </div>
       </header>
@@ -208,19 +237,27 @@ export default function Home() {
                 transition={{ duration: 0.5 }}
                 className="mb-6"
               >
-                {/* Linda hero card */}
+                {/* Child hero card */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6 max-w-lg mx-auto">
                   <div className="relative flex-shrink-0">
                     <img
-                      src="/linda.png"
-                      alt="Linda"
-                      className="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover shadow-xl ring-4 ring-teal-300"
+                      src={child.photo}
+                      alt={child.nameAr}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const nx = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (nx) nx.style.display = 'flex'; }}
+                      className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover shadow-xl ring-4 ${child.colorRing}`}
                     />
-                    <span className="absolute -bottom-1 -right-1 text-2xl">✨</span>
+                    <div style={{ display: 'none' }} className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full items-center justify-center text-6xl bg-gradient-to-br ${child.color} shadow-xl ring-4 ${child.colorRing}`}>
+                      {child.emoji}
+                    </div>
+                    <span className="absolute -bottom-1 -right-1 text-2xl">{child.interestEmoji}</span>
                   </div>
                   <div className="text-center sm:text-right" dir="rtl">
-                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 arabic-text">أهلاً يا لينيدا! 💙</h2>
-                    <p className="text-base text-gray-500 mt-1 arabic-text">بابا فخور فيكِ — هيا نتعلم سويًا!</p>
+                    <h2 className={`text-3xl md:text-4xl font-bold arabic-text ${child.colorText}`}>أهلاً يا {child.nameAr}! 💙</h2>
+                    <p className="text-base text-gray-500 mt-1 arabic-text">{child.dadToneAr} — بابا فخور فيك!</p>
+                    <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${child.colorLight} ${child.colorText} border ${child.colorBorder}`} dir="rtl">
+                      <span>{child.interestEmoji}</span>
+                      <span>{child.interest}</span>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -230,7 +267,7 @@ export default function Home() {
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
                 <p className="text-lg text-gray-600 max-w-2xl mx-auto arabic-text" dir="rtl">
-                  اختبري معلوماتكِ في العلوم والرياضيات والتاريخ واللغات. كل سؤال يجعلكِ أذكى! 🌟
+                  كل سؤال يجعلك أذكى! 🌟 العلم رحلة رائعة — هيا نبدأ
                 </p>
                 {/* Weak topics reminder */}
                 {weakTopics.length > 0 && (
@@ -242,7 +279,7 @@ export default function Home() {
                     dir="rtl"
                   >
                     <span>📚</span>
-                    <span>تحتاجين مراجعة: <strong>{weakTopics.map(t => t.lesson).join('، ')}</strong></span>
+                    <span>{isMale ? 'يحتاج مراجعة' : 'تحتاجين مراجعة'}: <strong>{weakTopics.map(t => t.lesson).join('، ')}</strong></span>
                   </motion.div>
                 )}
                 {reviewDue.length > 0 && weakTopics.length === 0 && (
@@ -361,6 +398,7 @@ export default function Home() {
               showResult={showResult}
               weakTopics={weakTopics.map(t => `${t.subject} ${t.lesson}`)}
               accuracyOnTopic={accuracyFor(currentQuestion.subject, currentQuestion.lesson ?? currentQuestion.subject)}
+              childProfile={child}
             />
 
             {/* Next Button */}
@@ -430,7 +468,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="mt-16 border-t border-gray-200 bg-gray-50">
         <div className="container mx-auto px-4 py-6 text-center text-gray-500 text-sm space-y-3">
-          <p>صُنع بـ ❤️ لـ Linda • استمر في التعلم والنمو! 🌟</p>
+          <p>صُنع بـ ❤️ لأبطالنا — لينيدا وآدم وجودي ونوح 💙</p>
           <a
             href={`https://wa.me/${WHATSAPP_NUMBER}`}
             target="_blank"

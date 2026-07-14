@@ -13,7 +13,7 @@ import {
   SubjectId,
   SUBJECTS,
 } from '@/lib/familyCurriculum';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   ArrowRight,
   CheckCircle2,
@@ -26,9 +26,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
-  Trophy,
-  Volume2,
-  XCircle
+  Trophy
 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
@@ -69,6 +67,7 @@ interface ProgressState {
   completed: Record<string, LessonResult>;
   lastStudied?: string;
   bonusXP?: number;
+  bonusCoins?: number;
 }
 
 interface SecurityConfig {
@@ -231,7 +230,7 @@ function calculateStats(progress: ProgressState) {
   const perfectLessons = results.filter(result => result.total > 0 && result.correct === result.total).length;
   const xp = completedLessons * 100 + correctAnswers * 25 + (progress.bonusXP ?? 0);
   const level = 1 + Math.floor(xp / 300);
-  const earnedCoins = completedLessons * 20 + perfectLessons * 5;
+  const earnedCoins = completedLessons * 20 + perfectLessons * 5 + (progress.bonusCoins ?? 0);
   return { completedLessons, correctAnswers, perfectLessons, xp, level, earnedCoins };
 }
 
@@ -528,6 +527,29 @@ function ParentPanel({
             </div>;
           })}</div>}
           <p className="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3 arabic-text">الموافقة داخل التطبيق لا تشتري شيئاً تلقائياً. أنت تشتري البطاقة أو الكوبون بنفسك عندما يناسبك.</p>
+        </section>
+
+        <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 mb-6">
+          <h2 className="text-xl font-black text-gray-900 arabic-text mb-4 flex items-center gap-2">🪙 منح عملات إضافية لطفل</h2>
+          <p className="text-sm text-gray-500 arabic-text mb-4">استخدم هذا لتعويض عملات مفقودة أو منح مكافأة خاصة. العملات تُضاف للرصيد الحالي.</p>
+          <div className="grid sm:grid-cols-2 gap-4">{LEARNER_ORDER.map(id => {
+            const learner = LEARNERS[id];
+            const prog = loadProgress(id);
+            const stats = calculateStats(prog);
+            return <div key={id} className={`rounded-2xl border ${learner.theme.border} ${learner.theme.light} p-4`}>
+              <p className={`font-black ${learner.theme.text} arabic-text mb-1`}>{learner.emoji} {learner.nameAr}</p>
+              <p className="text-xs text-gray-500 arabic-text mb-3">رصيده الحالي: {stats.earnedCoins} عملة</p>
+              {[50, 100, 200].map(amount => (
+                <button key={amount} onClick={() => {
+                  const current = loadProgress(id);
+                  const updated: ProgressState = { ...current, bonusCoins: (current.bonusCoins ?? 0) + amount };
+                  saveProgress(id, updated);
+                  setMessage(`✅ تم منح ${learner.nameAr} ${amount} عملة إضافية.`);
+                }} className={`ml-2 mb-2 px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-sm font-bold arabic-text hover:border-amber-400`}>+{amount}</button>
+              ))}
+            </div>;
+          })}</div>
+          {message && <p className="mt-3 text-sm text-green-700 bg-green-50 rounded-xl p-3 arabic-text">{message}</p>}
         </section>
 
         <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">

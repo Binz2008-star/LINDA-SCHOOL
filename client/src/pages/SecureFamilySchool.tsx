@@ -29,6 +29,7 @@ import {
   Trophy
 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 // Adapts LearnerProfile (familyCurriculum) → ChildProfile (InteractiveTools / children.ts)
 function learnerToChildProfile(learner: LearnerProfile): ChildProfile {
@@ -525,6 +526,34 @@ function ParentPanel({
         <div className="rounded-3xl bg-gradient-to-r from-blue-700 to-indigo-700 text-white p-6 md:p-8 shadow-xl mb-6">
           <div className="flex items-center gap-4"><ShieldCheck className="w-10 h-10" /><div><h1 className="text-3xl font-black arabic-text">لوحة الأب</h1><p className="text-white/80 mt-1 arabic-text">إدارة الرموز والموافقة على المكافآت الحقيقية</p></div></div>
         </div>
+
+        <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 mb-6">
+          <h2 className="text-xl font-black text-gray-900 arabic-text mb-4 flex items-center gap-2">📊 تقدم الأولاد — آخر 7 أيام</h2>
+          <div className="space-y-5">{LEARNER_ORDER.map(id => {
+            const learner = LEARNERS[id];
+            const prog = loadProgress(id);
+            const days: { day: string; count: number }[] = Array.from({ length: 7 }, (_, i) => {
+              const d = new Date(Date.now() - (6 - i) * 86400000);
+              const label = d.toLocaleDateString('ar-SA', { weekday: 'short' });
+              const dateStr = d.toDateString();
+              const count = Object.values(prog.completed).filter(r => new Date(r.completedAt).toDateString() === dateStr).length;
+              return { day: label, count };
+            });
+            const total7 = days.reduce((s, d) => s + d.count, 0);
+            if (total7 === 0) return <div key={id} className={`rounded-2xl border ${learner.theme.border} ${learner.theme.light} p-4`}><p className={`font-bold ${learner.theme.text} arabic-text`}>{learner.emoji} {learner.nameAr} — لا دروس هذا الأسبوع</p></div>;
+            return <div key={id} className={`rounded-2xl border ${learner.theme.border} ${learner.theme.light} p-4`}>
+              <p className={`font-black ${learner.theme.text} arabic-text mb-3`}>{learner.emoji} {learner.nameAr} — {total7} درس هذا الأسبوع</p>
+              <ResponsiveContainer width="100%" height={90}>
+                <BarChart data={days} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
+                  <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: number) => [`${v} درس`, '']} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="#6366f1" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>;
+          })}</div>
+        </section>
 
         <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 mb-6">
           <h2 className="text-xl font-black text-gray-900 arabic-text mb-4">طلبات المكافآت المعلقة</h2>

@@ -1,3 +1,4 @@
+import { getTomorrowLessons } from './tomorrowLessons';
 export type LearnerId = 'linda' | 'adam' | 'judy' | 'noah';
 export type SubjectId = 'arabic' | 'english' | 'math' | 'science' | 'life' | 'interest' | 'technology';
 
@@ -1013,7 +1014,7 @@ function makeWeeklyLessons(learner: LearnerProfile): SchoolLesson[] {
 }
 
 export function getCurriculum(learner: LearnerProfile): SchoolLesson[] {
-  return [...makeCoreLessons(learner), ...makeInterestLessons(learner), ...makeWeeklyLessons(learner)];
+  return [...makeCoreLessons(learner), ...makeInterestLessons(learner), ...getTomorrowLessons(learner), ...makeWeeklyLessons(learner)];
 }
 
 export function getLessonsBySubject(learner: LearnerProfile, subject: SubjectId): SchoolLesson[] {

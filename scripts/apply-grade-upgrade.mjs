@@ -35,3 +35,4 @@ patch('client/src/components/ChildSelector.tsx', [
 ]);
 
 console.log('Applied real grade profiles and grade-aligned curriculum.');
+// Validation trigger: 2026-07-16

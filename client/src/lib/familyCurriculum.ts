@@ -1,5 +1,5 @@
 export type LearnerId = 'linda' | 'adam' | 'judy' | 'noah';
-export type SubjectId = 'arabic' | 'english' | 'math' | 'science' | 'life' | 'interest';
+export type SubjectId = 'arabic' | 'english' | 'math' | 'science' | 'life' | 'interest' | 'technology';
 
 export interface LearnerProfile {
   id: LearnerId;
@@ -42,6 +42,7 @@ export interface SchoolLesson {
   remember: string;
   visuals?: { emoji: string; label: string }[];
   questions: LessonQuestion[];
+  unlockAt?: string; // ISO date; lessons are locked until this date
 }
 
 export const LEARNERS: Record<LearnerId, LearnerProfile> = {
@@ -136,6 +137,7 @@ export const SUBJECTS: Record<SubjectId, { label: string; emoji: string; descrip
   science: { label: 'العلوم', emoji: '🔬', description: 'ملاحظة وتجربة وفهم العالم' },
   life: { label: 'مهارات الحياة', emoji: '🧭', description: 'وقت، مال، أمان ومسؤولية' },
   interest: { label: 'مسار الاهتمام', emoji: '✨', description: 'دروس مرتبطة بما يحبه الطفل' },
+  technology: { label: 'تكنولوجيا', emoji: '💻', description: 'ابتكار، تصميم واكتشاف التقنية' },
 };
 
 function genderWord(learner: LearnerProfile, female: string, male: string): string {
@@ -930,10 +932,103 @@ function makeInterestLessons(learner: LearnerProfile): SchoolLesson[] {
   ];
 }
 
+function makeWeeklyLessons(learner: LearnerProfile): SchoolLesson[] {
+  // الدرس المفاجئ الأسبوعي: يتغير كل أسبوع حسب التاريخ. ثابت مع التاريخ لكل متعلم.
+  const now = new Date();
+  const weekIndex = Math.floor(now.getTime() / (7 * 24 * 60 * 60 * 1000));
+  const weekLabel = `w${weekIndex}`;
+
+  const sharedChallenges: Record<string, SchoolLesson> = {
+    'linda': {
+      id: `weekly-${weekLabel}-linda`,
+      subject: 'science',
+      title: 'تحدي الأسبوع: اكتشاف في المطبخ',
+      subtitle: 'تجربة علمية بسيطة بأدوات منزلية.',
+      emoji: '🧪',
+      objectives: ['مشاهدة تفاعل كيميائي بسيط', 'تسجيل النتائج', 'ربط الظاهرة بالسبب'],
+      explanation: ['تغيير اللون أو تكون الفقاعات قد يعني تفاعلاً كيميائياً. نكتب ما نراه ثم نبحث عن السبب.'],
+      example: 'عند إضافة الخل إلى صودا الخبز، تتكون فقاعات غاز ثاني أكسيد الكربون. لأن حمض الخل يتفاعل مع القاعدة.',
+      activity: 'جهّزي كوباً من الماء وضعي فيه ملعقة صغيرة من صودا الخبز، ثم أضيفي القليل من الخل. اكتبي ما يحدث.',
+      remember: 'العلم يبدأ بملاحظة، ثم سؤال، ثم تجربة.',
+      questions: [
+        { question: 'ما الغاز الذي يتكون في التجربة؟', options: ['ثاني أكسيد الكربون', 'أكسجين', 'هيدروجين', 'نيتروجين'], correctAnswer: 0, explanation: 'تتكون فقاعات من ثاني أكسيد الكربون عند تفاعل الخل (حمض) مع صودا الخبز (قاعدة).' },
+        { question: 'لماذا نكتب الملاحظات أولاً؟', options: ['للحفظ فقط', 'لنسجل ما رأينا قبل معرفة السبب', 'لننسى التجربة', 'لنقلد الكتاب'], correctAnswer: 1, explanation: 'الملاحظة الدقيقة قبل التفسير تبني تفكيراً علمياً.' },
+      ],
+      unlockAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1).toISOString().slice(0, 10),
+    },
+    'adam': {
+      id: `weekly-${weekLabel}-adam`,
+      subject: 'technology',
+      title: 'تحدي الأسبوع: اختراع من الخردة',
+      subtitle: 'اصنع شيئاً مفيداً من مواد بسيطة.',
+      emoji: '🔧',
+      objectives: ['تحديد مشكلة', 'بناء نموذج أولي', 'اختباره وتحسينه'],
+      explanation: ['المخترعون يبدأون بمشكلة صغيرة ويصنعون نماذج بسيطة من مواد متاحة. ليس المهم الجمال، المهم العمل.'],
+      example: 'قارورة بلاستيكية كوبريان مقص شريط لاصق = قارورة ماء ذاتية الإغلاق بسيطة.',
+      activity: 'ابحث في المنزل عن ثلاث قطع "خردة" (كرتون، زجاجة، أعواد) واصنع أداة صغيرة لحل مشكلة في غرفتك.',
+      remember: 'كل اختراع كبير بدأ نموذجاً صغيراً وغير جميل.',
+      questions: [
+        { question: 'ما الهدف من النموذج الأولي؟', options: ['البيع مباشرة', 'اختبار الفكرة بسرعة', 'الزخرفة', 'تقليد الآخرين'], correctAnswer: 1, explanation: 'النموذج الأولي يختبر الفكرة قبل تكلفة كبيرة.' },
+        { question: 'أي مادة مناسبة للتجربة السريعة؟', options: ['خرسانة', 'الكرتون والشريط', 'زجاج سميك', 'معدن ثقيل'], correctAnswer: 1, explanation: 'الكرتون والشريط سهلان التعديل والتصليح.' },
+      ],
+      unlockAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1).toISOString().slice(0, 10),
+    },
+    'judy': {
+      id: `weekly-${weekLabel}-judy`,
+      subject: 'english',
+      title: 'تحدي الأسبوع: إنجليزي في الرياضة',
+      subtitle: 'نتعلم كلمات جديدة حول الرياضة واللعب.',
+      emoji: '⚽',
+      objectives: ['حفظ 5 كلمات إنجليزية', 'استخدامها في جملة', 'ربطها برياضة تحبينها'],
+      explanation: ['الرياضة تحتوي على كلمات إنجليزية بسيطة: kick, pass, run, team, score. نتعلمها باللعب.'],
+      example: 'I pass the ball to my team, then I run fast to score a goal.',
+      activity: 'اختر رياضة واحدة واكتب 5 كلمات إنجليزية لها. ردديها وأنت تمارسين الحركة.',
+      remember: 'الكلمات تثبت في الذاكرة عندما نربطها بحركة أو شعور.',
+      questions: [
+        { question: 'ما معنى "score" في الرياضة؟', options: ['يجري', 'يسجل هدفاً', 'يمرر', 'يتسلق'], correctAnswer: 1, explanation: 'تعني "score" أن تسجل نقطة أو هدفاً.' },
+        { question: 'أكمل: I ___ the ball to my friend.', options: ['kick', 'pass', 'run', 'score'], correctAnswer: 1, explanation: 'إذا أرسلت الكرة للصديق، فأنت "pass" (تمرر).' },
+      ],
+      unlockAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1).toISOString().slice(0, 10),
+    },
+    'noah': {
+      id: `weekly-${weekLabel}-noah`,
+      subject: 'math',
+      title: 'تحدي الأسبوع: أرقام في الألعاب',
+      subtitle: 'نجد الأرقام في ألعابنا المفضلة.',
+      emoji: '🎲',
+      objectives: ['إحصاء الأعداد في لعبة', 'مقارنة أرقام', 'حل مسألة بسيطة من لعبة'],
+      explanation: ['الألعاب مليئة بالأرقام: النقاط، الوقت، العدادات. نستخدمها للتفكير الرياضي.'],
+      example: 'إذا حصلت على 5 نقاط في الجولة الأولى و 3 في الثانية، فمجموعك 8 نقاط.',
+      activity: 'العب لعبة واحدة مع عائلة أو أصدقاء وسجّل النقاط لكل جولة. من الأكثر؟ ما الفرق؟',
+      remember: 'الأرقام حولنا، خاصة في اللعب.',
+      questions: [
+        { question: 'إذا كان لديك 5 نقاط وزدت 3، كم مجموعك؟', options: ['7', '8', '9', '6'], correctAnswer: 1, explanation: '5 + 3 = 8.' },
+        { question: 'ما أفضل طريقة لحساب الفرق بين 10 و 6؟', options: ['نجمع', 'نطرح', 'نضرب', 'نقسم'], correctAnswer: 1, explanation: 'لإيجاد الفرق نطرح: 10 - 6 = 4.' },
+      ],
+      unlockAt: new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1).toISOString().slice(0, 10),
+    },
+  };
+
+  return learner.id in sharedChallenges ? [sharedChallenges[learner.id]] : [];
+}
+
 export function getCurriculum(learner: LearnerProfile): SchoolLesson[] {
-  return [...makeCoreLessons(learner), ...makeInterestLessons(learner)];
+  return [...makeCoreLessons(learner), ...makeInterestLessons(learner), ...makeWeeklyLessons(learner)];
 }
 
 export function getLessonsBySubject(learner: LearnerProfile, subject: SubjectId): SchoolLesson[] {
   return getCurriculum(learner).filter(lesson => lesson.subject === subject);
+}
+
+export function isLessonUnlocked(lesson: SchoolLesson): boolean {
+  if (!lesson.unlockAt) return true;
+  return new Date(lesson.unlockAt) <= new Date();
+}
+
+export function isLessonNew(lesson: SchoolLesson): boolean {
+  if (!lesson.unlockAt) return false;
+  const unlock = new Date(lesson.unlockAt);
+  const now = new Date();
+  const diffDays = (now.getTime() - unlock.getTime()) / (1000 * 60 * 60 * 24);
+  return diffDays >= 0 && diffDays <= 7;
 }

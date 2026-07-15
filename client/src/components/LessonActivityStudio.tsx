@@ -4,7 +4,6 @@ import { LearnerProfile, SchoolLesson, SubjectId } from '@/lib/familyCurriculum'
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
-  Check,
   ChevronLeft,
   Eraser,
   Lightbulb,
@@ -14,7 +13,7 @@ import {
   RefreshCw,
   RotateCcw,
   Sparkles,
-  Volume2,
+  Volume2
 } from 'lucide-react';
 import { PointerEvent, useMemo, useRef, useState } from 'react';
 
@@ -64,6 +63,7 @@ const SUBJECT_DRAW_PROMPTS: Record<SubjectId, string> = {
   science: 'ارسم ما لاحظته أو ما تتوقع حدوثه في تجربة مرتبطة بالدرس.',
   life: 'ارسم موقفاً يومياً تطبق فيه المهارة التي تعلمتها.',
   interest: 'حوّل فكرة الدرس إلى تصميم أو مخطط من خيالك.',
+  technology: 'ارسم مخطط اختراعك أو تصميمك، ثم اكتب المشكلة التي يحلها.',
 };
 
 function personalizedSentence(learner: LearnerProfile, language: 'ar' | 'en'): string[] {

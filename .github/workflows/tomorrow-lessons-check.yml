@@ -1,0 +1,60 @@
+name: Validate tomorrow lessons
+
+on:
+  push:
+    branches:
+      - feat/tomorrow-lessons-2026-07-17-v2
+    paths:
+      - client/src/lib/tomorrowLessons.ts
+      - client/src/lib/familyCurriculum.ts
+      - scripts/apply-tomorrow-lessons.mjs
+      - .github/workflows/tomorrow-lessons-check.yml
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/tomorrow-lessons-2026-07-17-v2
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Integrate tomorrow lessons
+        run: node scripts/apply-tomorrow-lessons.mjs
+
+      - name: Type-check
+        run: pnpm check
+
+      - name: Build
+        run: pnpm build
+
+      - name: Commit curriculum integration
+        run: |
+          if git diff --quiet; then
+            echo "No integration change required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add client/src/lib/familyCurriculum.ts
+          git commit -m "feat: include lessons for 17 July 2026 [skip ci]"
+          git push origin HEAD:feat/tomorrow-lessons-2026-07-17-v2

@@ -21,7 +21,7 @@ export interface ChildProfile {
   colorBorder: string;
   colorText: string;
   colorRing: string;
-  gradeLevel: 3 | 5 | 7;
+  gradeLevel: 1 | 3 | 4 | 5 | 6 | 7;
   difficulty: 'easy' | 'medium' | 'hard';
   dadToneAr: string;
   dadToneEn: string;

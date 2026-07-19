@@ -261,26 +261,32 @@ export default function Home() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {/* Hero Section */}
-            <div className="mb-10 text-center">
+            {/* Hero Section — Remix */}
+            <div className="mb-10">
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
                 className="mb-6"
               >
-                {/* Child hero card */}
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-6 max-w-lg mx-auto">
-                  <div className="relative flex-shrink-0">
-                    <ChildAvatar child={child} className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover shadow-xl ring-4 ${child.colorRing}`} />
-                    <span className="absolute -bottom-1 -right-1 text-2xl">{child.interestEmoji}</span>
-                  </div>
-                  <div className="text-center sm:text-right" dir="rtl">
-                    <h2 className={`text-3xl md:text-4xl font-bold arabic-text ${child.colorText}`}>أهلاً يا {child.nameAr}! 💙</h2>
-                    <p className="text-base text-gray-500 mt-1 arabic-text">{child.dadToneAr} — بابا فخور فيك!</p>
-                    <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${child.colorLight} ${child.colorText} border ${child.colorBorder}`} dir="rtl">
-                      <span>{child.interestEmoji}</span>
-                      <span>{child.interest}</span>
+                {/* Child hero card with gradient bg */}
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-50 via-pink-50 to-orange-50 p-6 md:p-8 border border-violet-100">
+                  {/* Decorative blobs */}
+                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-violet-200/20 rounded-full blur-3xl" />
+                  <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-pink-200/20 rounded-full blur-3xl" />
+
+                  <div className="relative flex flex-col sm:flex-row items-center justify-center gap-6 max-w-lg mx-auto">
+                    <div className="relative flex-shrink-0">
+                      <ChildAvatar child={child} className={`w-28 h-28 sm:w-36 sm:h-36 rounded-3xl object-cover shadow-xl ring-4 ${child.colorRing}`} />
+                      <span className="absolute -bottom-2 -right-2 text-3xl bg-white rounded-full p-1 shadow-md">{child.interestEmoji}</span>
+                    </div>
+                    <div className="text-center sm:text-right" dir="rtl">
+                      <h2 className={`text-3xl md:text-4xl font-black arabic-text ${child.colorText}`}>أهلاً يا {child.nameAr}! 💙</h2>
+                      <p className="text-base text-gray-500 mt-1 arabic-text">{child.dadToneAr} — بابا فخور فيك!</p>
+                      <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${child.colorLight} ${child.colorText} border ${child.colorBorder}`} dir="rtl">
+                        <span>{child.interestEmoji}</span>
+                        <span>{child.interest}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -289,6 +295,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
+                className="text-center"
               >
                 <p className="text-lg text-gray-600 max-w-2xl mx-auto arabic-text" dir="rtl">
                   كل سؤال يجعلك أذكى! 🌟 العلم رحلة رائعة — هيا نبدأ
@@ -299,7 +306,7 @@ export default function Home() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm font-medium arabic-text"
+                    className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-full text-sm font-bold arabic-text"
                     dir="rtl"
                   >
                     <span>📚</span>
@@ -311,7 +318,7 @@ export default function Home() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-sm font-medium arabic-text"
+                    className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-blue-50 border border-blue-200 text-blue-800 rounded-full text-sm font-bold arabic-text"
                     dir="rtl"
                   >
                     <span>🔔</span>
@@ -323,7 +330,7 @@ export default function Home() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.4, type: 'spring' }}
-                    className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-semibold"
+                    className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 rounded-full text-sm font-bold border border-orange-200"
                   >
                     🔥 {streak} {streak === 1 ? 'يوم' : 'أيام'} متتالية!
                   </motion.div>

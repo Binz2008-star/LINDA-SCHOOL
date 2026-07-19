@@ -124,6 +124,13 @@ export default function QuizCard({
   const isCorrectAnswer = answered && selectedAnswer === question.correctAnswer;
   const labels = isRTL ? OPTION_LABELS : OPTION_LABELS_EN;
 
+  const difficultyConfig = {
+    easy: { label: isRTL ? 'سهل' : 'Easy', color: 'bg-green-100 text-green-700', dot: 'bg-green-400' },
+    medium: { label: isRTL ? 'متوسط' : 'Medium', color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400' },
+    hard: { label: isRTL ? 'صعب' : 'Hard', color: 'bg-rose-100 text-rose-700', dot: 'bg-rose-400' },
+  };
+  const diff = difficultyConfig[question.difficulty];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -132,35 +139,37 @@ export default function QuizCard({
       dir={isRTL ? 'rtl' : 'ltr'}
       className={`w-full max-w-2xl mx-auto ${isRTL ? 'arabic-text' : ''}`}
     >
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
 
-        {/* ── Subject bar ─────────────────────────────────────── */}
-        <div className="flex items-center gap-2 px-5 pt-5 pb-3 flex-wrap">
-          <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-teal-100 to-purple-100 rounded-full text-sm font-semibold text-teal-700">
-            <BookOpen className="w-3.5 h-3.5" />
-            {question.subject || question.category}
-          </span>
-          {question.lesson && (
-            <span className="inline-block px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-500">
-              {question.lesson}
+        {/* ── Gradient subject bar ──────────────────────────── */}
+        <div className="relative px-5 pt-4 pb-3 bg-gradient-to-r from-violet-50 via-pink-50 to-orange-50 overflow-hidden">
+          <div className="absolute -top-4 -right-4 w-24 h-24 bg-pink-200/20 rounded-full blur-2xl" />
+          <div className="relative flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/80 backdrop-blur rounded-full text-sm font-bold text-violet-700 shadow-sm">
+              <BookOpen className="w-3.5 h-3.5" />
+              {question.subject || question.category}
             </span>
-          )}
-          {isWeakTopic && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">
-              <Sparkles className="w-3 h-3" />
-              {isRTL ? 'موضوع يحتاج مراجعة' : 'Review focus'}
+            {question.lesson && (
+              <span className="inline-block px-3 py-1 bg-white/60 backdrop-blur rounded-full text-xs font-medium text-gray-500">
+                {question.lesson}
+              </span>
+            )}
+            {isWeakTopic && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
+                <Sparkles className="w-3 h-3" />
+                {isRTL ? 'مراجعة' : 'Review'}
+              </span>
+            )}
+            <span className={`ms-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${diff.color}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${diff.dot}`} />
+              {diff.label}
             </span>
-          )}
-          <span className="ms-auto text-xs font-medium text-gray-400 uppercase tracking-wide">
-            {question.difficulty === 'easy' ? (isRTL ? 'سهل' : 'Easy') :
-              question.difficulty === 'medium' ? (isRTL ? 'متوسط' : 'Medium') :
-                (isRTL ? 'صعب' : 'Hard')}
-          </span>
+          </div>
         </div>
 
-        {/* ── Question text + read-aloud button ───────────────── */}
-        <div className="px-5 pb-4">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 leading-relaxed mb-3">
+        {/* ── Question text + read-aloud ────────────────────── */}
+        <div className="px-5 pt-5 pb-4">
+          <h2 className="text-xl md:text-2xl font-black text-gray-900 leading-relaxed mb-3">
             {question.question}
           </h2>
           {isSupported && (
@@ -168,8 +177,8 @@ export default function QuizCard({
               onClick={handleReadQuestion}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
                 ${speaking
-                  ? 'bg-teal-100 text-teal-700 border border-teal-300'
-                  : 'bg-gray-100 text-gray-500 hover:bg-teal-50 hover:text-teal-600 border border-gray-200'}`}
+                  ? 'bg-violet-100 text-violet-700 border border-violet-300'
+                  : 'bg-gray-50 text-gray-500 hover:bg-violet-50 hover:text-violet-600 border border-gray-200'}`}
             >
               {speaking
                 ? <><VolumeX className="w-4 h-4" />{isRTL ? 'إيقاف' : 'Stop'}</>
@@ -179,7 +188,7 @@ export default function QuizCard({
         </div>
 
         {/* ── Options ─────────────────────────────────────────── */}
-        <div className="px-5 pb-5 space-y-3">
+        <div className="px-5 pb-5 space-y-2.5">
           {question.options.map((option, index) => {
             const isSelected = selectedAnswer === index;
             const isCorrectOpt = index === question.correctAnswer;
@@ -197,35 +206,35 @@ export default function QuizCard({
                 <button
                   onClick={() => handleSelectAnswer(index)}
                   disabled={isAnswered}
-                  className={`w-full rounded-xl font-medium text-base transition-all duration-200
+                  className={`w-full rounded-2xl font-medium text-base transition-all duration-200
                     flex items-start gap-3 min-h-[56px] p-4
                     ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}
-                    ${showCorrect ? 'bg-green-50 border-2 border-green-500 text-green-900' :
-                      showWrong ? 'bg-red-50   border-2 border-red-500   text-red-900' :
+                    ${showCorrect ? 'bg-green-50 border-2 border-green-500 text-green-900 shadow-md shadow-green-100' :
+                      showWrong ? 'bg-red-50   border-2 border-red-500   text-red-900 shadow-md shadow-red-100' :
                         showNeutral ? 'bg-gray-50  border-2 border-gray-200  text-gray-400' :
-                          isSelected ? 'bg-teal-50  border-2 border-teal-400  text-gray-900' :
-                            'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-teal-300 hover:bg-teal-50'}
+                          isSelected ? 'bg-violet-50  border-2 border-violet-400  text-gray-900' :
+                            'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-violet-300 hover:bg-violet-50 hover:shadow-sm'}
                     ${isAnswered ? 'cursor-default' : 'cursor-pointer'}`}
                 >
                   {/* Label circle */}
-                  <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold mt-0.5
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black mt-0.5 transition-all
                     ${showCorrect ? 'bg-green-500 text-white' :
                       showWrong ? 'bg-red-500   text-white' :
                         showNeutral ? 'bg-gray-200  text-gray-400' :
-                          isSelected ? 'bg-teal-500  text-white' :
-                            'bg-gray-200  text-gray-600'}`}>
+                          isSelected ? 'bg-violet-500  text-white' :
+                            'bg-gray-200  text-gray-600 group-hover:bg-violet-200'}`}>
                     {showCorrect ? <CheckCircle2 className="w-4 h-4" /> :
                       showWrong ? <XCircle className="w-4 h-4" /> :
                         labels[index]}
                   </div>
                   <span className="flex-1 leading-snug">{option}</span>
                   {answered && showCorrect && (
-                    <span className="flex-shrink-0 text-xs font-semibold text-green-600">
+                    <span className="flex-shrink-0 text-xs font-bold text-green-600">
                       ✓ {isRTL ? 'صحيح' : 'Correct'}
                     </span>
                   )}
                   {answered && showWrong && (
-                    <span className="flex-shrink-0 text-xs font-semibold text-red-500">
+                    <span className="flex-shrink-0 text-xs font-bold text-red-500">
                       ✗ {isRTL ? 'خاطئ' : 'Wrong'}
                     </span>
                   )}
@@ -237,7 +246,7 @@ export default function QuizCard({
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     transition={{ duration: 0.3, delay: 0.15 }}
-                    className={`mt-1 mx-1 px-4 py-2 rounded-lg text-sm leading-relaxed
+                    className={`mt-1 mx-1 px-4 py-2 rounded-xl text-sm leading-relaxed
                       ${showCorrect ? 'bg-green-50 text-green-800 border border-green-200'
                         : 'bg-red-50 text-red-800 border border-red-200'}`}
                   >
@@ -254,13 +263,15 @@ export default function QuizCard({
           {showBurst && (
             <motion.div
               key="burst"
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1.3 }}
-              exit={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.5, y: 0 }}
+              animate={{ opacity: 1, scale: 1.3, y: -10 }}
+              exit={{ opacity: 0, scale: 0.8, y: -20 }}
               transition={{ duration: 0.5 }}
-              className="text-center text-3xl pointer-events-none select-none py-1"
+              className="text-center text-3xl pointer-events-none select-none py-1 font-black"
             >
-              ✨ +XP
+              <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
+                ✨ +XP
+              </span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -278,19 +289,24 @@ export default function QuizCard({
               {/* Result banner */}
               <div className={`px-5 py-4 flex items-center gap-3
                 ${isRTL ? 'flex-row-reverse' : ''}
-                ${isCorrectAnswer ? 'bg-green-50' : 'bg-red-50'}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-xl
-                  ${isCorrectAnswer ? 'bg-green-100' : 'bg-red-100'}`}>
+                ${isCorrectAnswer ? 'bg-gradient-to-r from-green-50 to-emerald-50' : 'bg-gradient-to-r from-rose-50 to-orange-50'}`}>
+                <motion.div
+                  initial={{ scale: 0, rotate: -20 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl shadow-sm
+                    ${isCorrectAnswer ? 'bg-green-100' : 'bg-rose-100'}`}
+                >
                   {isCorrectAnswer ? '🎉' : '💪'}
-                </div>
+                </motion.div>
                 <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <p className={`font-bold text-base ${isCorrectAnswer ? 'text-green-800' : 'text-red-800'}`}>
+                  <p className={`font-black text-base ${isCorrectAnswer ? 'text-green-800' : 'text-rose-800'}`}>
                     {isCorrectAnswer
                       ? correctMsg(nameAr, nameEn, isMale, isRTL)
                       : wrongMsg(nameAr, nameEn, isMale, isRTL)}
                   </p>
                   {!isCorrectAnswer && (
-                    <p className="text-sm mt-0.5 text-red-700">
+                    <p className="text-sm mt-0.5 text-rose-600 font-medium">
                       {isRTL
                         ? `الإجابة الصحيحة: ${question.options[question.correctAnswer]}`
                         : `Correct answer: ${question.options[question.correctAnswer]}`}
@@ -300,10 +316,10 @@ export default function QuizCard({
               </div>
 
               {/* Dad Tutor panel */}
-              <div className={`px-5 py-4 ${isCorrectAnswer ? 'bg-rose-50/60' : 'bg-violet-50/60'}`}>
+              <div className={`px-5 py-4 ${isCorrectAnswer ? 'bg-rose-50/40' : 'bg-violet-50/40'}`}>
                 <div className={`flex items-center gap-2 mb-3 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <Heart className={`w-4 h-4 fill-current flex-shrink-0 ${isCorrectAnswer ? 'text-rose-500' : 'text-violet-500'}`} />
-                  <span className={`font-semibold text-sm flex-1 ${isCorrectAnswer ? 'text-rose-800' : 'text-violet-900'}`}>
+                  <span className={`font-bold text-sm flex-1 ${isCorrectAnswer ? 'text-rose-800' : 'text-violet-900'}`}>
                     {loading
                       ? (isRTL ? '💭 بابا يفكّر في الشرح...' : '💭 Dad is preparing...')
                       : tutorTitle(nameAr, nameEn, isCorrectAnswer, isRTL)}
@@ -314,7 +330,7 @@ export default function QuizCard({
                     <button
                       onClick={handleReadExplanation}
                       title={isRTL ? 'اسمع الشرح' : 'Listen to explanation'}
-                      className="flex-shrink-0 p-1.5 rounded-full bg-white/70 hover:bg-white border border-gray-200 text-gray-500 hover:text-teal-600 transition-all"
+                      className="flex-shrink-0 p-1.5 rounded-full bg-white/70 hover:bg-white border border-gray-200 text-gray-500 hover:text-violet-600 transition-all"
                     >
                       <Volume2 className="w-4 h-4" />
                     </button>
@@ -338,7 +354,7 @@ export default function QuizCard({
                 </div>
 
                 {isWeakTopic && accuracyOnTopic !== null && accuracyOnTopic !== undefined && (
-                  <div className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-lg py-1.5 px-3" dir={isRTL ? 'rtl' : 'ltr'}>
+                  <div className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-xl py-2 px-3" dir={isRTL ? 'rtl' : 'ltr'}>
                     {isRTL
                       ? `📊 دقتك في هذا الموضوع: ${accuracyOnTopic}% — ${isCorrectAnswer ? 'أنت تتحسن! 🌱' : 'التكرار يُرسّخ 💪'}`
                       : `📊 Accuracy on this topic: ${accuracyOnTopic}% — ${isCorrectAnswer ? "You're improving! 🌱" : 'Practice makes perfect! 💪'}`}
@@ -350,8 +366,8 @@ export default function QuizCard({
               <div className="px-5 py-4 bg-white">
                 <button
                   onClick={() => { stop(); onNext(); }}
-                  className={`w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all
-                    shadow-md active:scale-95
+                  className={`w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition-all
+                    shadow-lg active:scale-95
                     ${isCorrectAnswer
                       ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-green-200'
                       : 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-violet-200'}`}

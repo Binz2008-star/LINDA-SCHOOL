@@ -1,6 +1,5 @@
-import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { BookOpen, CalendarDays, Globe, Languages } from 'lucide-react';
+import { BookOpen, CalendarDays, Globe, Languages, Sparkles, Zap } from 'lucide-react';
 
 interface QuizModeSelectorProps {
   onSelectMode: (mode: 'mixed' | 'arabic' | 'english' | 'subject' | 'daily') => void;
@@ -16,18 +15,19 @@ export default function QuizModeSelector({
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.2,
+        staggerChildren: 0.12,
+        delayChildren: 0.15,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 24, scale: 0.95 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.5 },
+      scale: 1,
+      transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
     },
   };
 
@@ -37,45 +37,50 @@ export default function QuizModeSelector({
       label: 'اختبار اليوم',
       description: dayStr,
       icon: CalendarDays,
-      color: 'from-yellow-500 to-orange-500',
-      bgColor: 'from-yellow-50 to-orange-50',
+      gradient: 'from-amber-400 via-orange-400 to-rose-400',
+      glow: 'shadow-orange-200/60',
       badge: 'جديد يومياً',
+      featured: true,
     },
     {
       id: 'mixed',
       label: 'تحدي مختلط',
       description: 'أسئلة عربية وإنجليزية',
       icon: Globe,
-      color: 'from-blue-500 to-purple-500',
-      bgColor: 'from-blue-50 to-purple-50',
+      gradient: 'from-blue-500 via-indigo-500 to-purple-500',
+      glow: 'shadow-indigo-200/60',
       badge: null,
+      featured: false,
     },
     {
       id: 'arabic',
       label: 'عربي فقط',
       description: 'تدرّب على الأسئلة العربية',
       icon: Languages,
-      color: 'from-teal-500 to-green-500',
-      bgColor: 'from-teal-50 to-green-50',
+      gradient: 'from-teal-400 via-emerald-400 to-green-500',
+      glow: 'shadow-emerald-200/60',
       badge: null,
+      featured: false,
     },
     {
       id: 'english',
       label: 'English Only',
       description: 'Practice English questions',
       icon: Globe,
-      color: 'from-orange-500 to-pink-500',
-      bgColor: 'from-orange-50 to-pink-50',
+      gradient: 'from-pink-400 via-rose-400 to-orange-400',
+      glow: 'shadow-rose-200/60',
       badge: null,
+      featured: false,
     },
     {
       id: 'subject',
       label: 'حسب المادة',
       description: 'اختر مادة محددة',
       icon: BookOpen,
-      color: 'from-indigo-500 to-violet-500',
-      bgColor: 'from-indigo-50 to-violet-50',
+      gradient: 'from-violet-500 via-purple-500 to-fuchsia-500',
+      glow: 'shadow-purple-200/60',
       badge: null,
+      featured: false,
     },
   ];
 
@@ -85,77 +90,114 @@ export default function QuizModeSelector({
       initial="hidden"
       animate="visible"
       className="w-full max-w-4xl mx-auto"
+      dir="rtl"
     >
-      <div className="text-center mb-12">
+      {/* Header */}
+      <div className="text-center mb-10">
+        <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-1.5 mb-4 rounded-full bg-gradient-to-r from-violet-100 to-pink-100 border border-violet-200">
+          <Sparkles className="w-4 h-4 text-violet-600" />
+          <span className="text-sm font-bold text-violet-700 arabic-text">وضع جديد · Remix 2026</span>
+        </motion.div>
         <motion.h2
           variants={itemVariants}
-          className="text-4xl md:text-5xl font-bold text-gray-900 mb-4"
+          className="text-3xl md:text-5xl font-black text-gray-900 mb-3 arabic-text"
         >
-          اختر وضع الاختبار
+          اختاري تحدي اليوم 🎯
         </motion.h2>
         <motion.p
           variants={itemVariants}
-          className="text-base text-gray-600 arabic-text"
+          className="text-base text-gray-500 arabic-text"
         >
-          اختاري الوضع المناسب وابدئي!
+          كل وضع له نكهة خاصة — جرّبيها كلها! 🚀
         </motion.p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-        {modes.map((mode) => {
+      {/* Featured Daily Card */}
+      <motion.div variants={itemVariants} className="mb-5">
+        <button
+          onClick={() => onSelectMode('daily')}
+          className="w-full group relative overflow-hidden rounded-3xl p-[2px] bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 shadow-xl shadow-orange-200/50 hover:shadow-2xl hover:shadow-orange-200/60 transition-all duration-300 hover:-translate-y-1"
+        >
+          <div className="relative rounded-3xl bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 p-6 md:p-8 overflow-hidden">
+            {/* Decorative blobs */}
+            <div className="absolute -top-8 -left-8 w-32 h-32 bg-orange-200/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-rose-200/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+
+            <div className="relative flex items-center gap-5">
+              {/* Icon */}
+              <div className="flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                <CalendarDays className="w-8 h-8 md:w-10 md:h-10 text-white" />
+              </div>
+
+              {/* Text */}
+              <div className="flex-1 text-right">
+                <div className="flex items-center gap-2 mb-1 justify-end">
+                  <span className="text-xs font-black bg-gradient-to-r from-amber-500 to-rose-500 text-white px-2.5 py-0.5 rounded-full">
+                    ✨ {dayStr}
+                  </span>
+                  <h3 className="text-xl md:text-2xl font-black text-gray-900 arabic-text">اختبار اليوم</h3>
+                </div>
+                <p className="text-sm text-gray-500 arabic-text mb-2">أسئلة جديدة مختارة بعناية كل يوم — لا تفوّتيها!</p>
+                <div className="flex items-center gap-2 justify-end">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
+                    <Zap className="w-3 h-3" />
+                    ابدأ الآن
+                  </span>
+                  <span className="text-xs font-bold bg-yellow-300 text-yellow-900 px-2.5 py-1 rounded-full">
+                    🔥 جديد يومياً
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </button>
+      </motion.div>
+
+      {/* Other modes grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        {modes.filter(m => !m.featured).map((mode) => {
           const Icon = mode.icon;
           return (
-            <motion.div
+            <motion.button
               key={mode.id}
               variants={itemVariants}
-              whileHover={{ y: -6 }}
+              whileHover={{ y: -6, scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => onSelectMode(mode.id as 'mixed' | 'arabic' | 'english' | 'subject' | 'daily')}
-              className={mode.id === 'daily' ? 'col-span-2 md:col-span-1' : ''}
+              className="group relative overflow-hidden rounded-2xl p-[2px] bg-gradient-to-br opacity-90 hover:opacity-100 transition-all duration-300"
+              style={{ backgroundImage: `linear-gradient(135deg, var(--tw-gradient-stops))` }}
             >
-              <button
-                className={`w-full h-full p-5 md:p-7 rounded-2xl bg-gradient-to-br ${mode.bgColor} border-2 border-transparent hover:border-gray-300 transition-all duration-300 cursor-pointer group relative`}
-              >
-                {mode.badge && (
-                  <span className="absolute top-3 right-3 text-xs font-bold bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full">
-                    {mode.badge}
-                  </span>
-                )}
-                <div className="flex flex-col items-center text-center">
-                  <div
-                    className={`w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br ${mode.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    <Icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                  </div>
-                  <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1">
-                    {mode.label}
-                  </h3>
-                  <p className="text-xs text-gray-500 mb-4">
-                    {mode.description}
-                  </p>
-                  <div className="w-full">
-                    <Button
-                      className={`w-full bg-gradient-to-r ${mode.color} hover:shadow-lg text-white font-semibold py-2 rounded-lg text-sm min-h-[40px]`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectMode(mode.id as 'mixed' | 'arabic' | 'english' | 'subject' | 'daily');
-                      }}
-                    >
-                      ابدأ
-                    </Button>
-                  </div>
+              <div className={`absolute inset-0 bg-gradient-to-br ${mode.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl`} />
+              <div className={`relative rounded-2xl bg-white p-4 md:p-5 h-full flex flex-col items-center text-center shadow-md ${mode.glow} group-hover:shadow-lg transition-all duration-300`}>
+                {/* Icon */}
+                <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br ${mode.gradient} flex items-center justify-center mb-3 shadow-md group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
+                  <Icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
                 </div>
-              </button>
-            </motion.div>
+                {/* Label */}
+                <h3 className="text-sm md:text-base font-black text-gray-900 mb-1 arabic-text">
+                  {mode.label}
+                </h3>
+                {/* Description */}
+                <p className="text-[11px] md:text-xs text-gray-400 leading-snug mb-3 arabic-text">
+                  {mode.description}
+                </p>
+                {/* CTA pill */}
+                <span className={`mt-auto inline-flex items-center gap-1 text-xs font-bold bg-gradient-to-r ${mode.gradient} bg-clip-text text-transparent group-hover:bg-clip-border group-hover:text-white transition-all`}>
+                  ابدأ ←
+                </span>
+              </div>
+            </motion.button>
           );
         })}
       </div>
 
+      {/* Tip */}
       <motion.div
         variants={itemVariants}
-        className="mt-8 p-5 bg-gradient-to-r from-teal-100 to-purple-100 rounded-xl border-r-4 border-teal-500"
+        className="mt-6 p-4 bg-gradient-to-r from-violet-50 to-pink-50 rounded-2xl border border-violet-100"
       >
-        <p className="text-gray-800 font-semibold text-sm">
-          💡 نصيحة: ابدأ بـ «اختبار اليوم» للحصول على أسئلة جديدة كل يوم تلقائياً!
+        <p className="text-gray-600 font-semibold text-sm arabic-text text-center">
+          💡 نصيحة بابا: ابدئي بـ«اختبار اليوم» ثم جرّبي الأوضاع الأخرى لتوسيع معرفتك! 🌟
         </p>
       </motion.div>
     </motion.div>
